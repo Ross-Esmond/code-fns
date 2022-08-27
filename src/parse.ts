@@ -2,7 +2,6 @@ import {createStarryNight, all, Root} from '@wooorm/starry-night'
 import type {RootContent} from 'hast'
 import styles from 'github-markdown-css/github-markdown-dark.css'
 import css, {Stylesheet, Rule, Declaration} from 'css'
-import {diff} from 'deep-diff'
 
 const rules = new Map();
 
@@ -33,21 +32,98 @@ function last (arr: any[]) {
   return arr[arr.length - 1];
 }
 
-export type RenderList = [string, string?][][];
+export class RenderList {
+  constructor(
+    readonly lines: RenderLine[],
+    readonly language: string,
+  ) {
+  }
+}
+export class RenderLine {
+  constructor(
+    readonly tokens: RenderToken[],
+    readonly tags: string[] = [],
+  ) {
+  }
+}
+export class RenderToken {
+  public readonly color?: string;
+  public readonly type?: string;
+  public readonly tag?: string;
+
+  constructor(
+    readonly text: string,
+    options?: {
+      color?: string,
+      type?: string,
+      tag?: string,
+    },
+  ) {
+    this.color = options?.color ?? '';
+    this.type = options?.type;
+    this.tag = options?.tag;
+  }
+}
 
 export async function parse(code: string, language: string) {
   const starryNight = await starryNightPromise;
   const scope = starryNight.flagToScope(language);
   if (typeof scope !== 'string') throw new Error(`language ${language} not found`);
-  return convert(starryNight.highlight(code, scope))
-    .map(line => line.filter(token => token[0] !== ''))
+  return convert(starryNight.highlight(code, scope), language)
 }
 
-function convert(node: Root): RenderList {
-  return _convert(node, null, []);
+const classType = new Map([
+  ['pl-c', 'comment'],
+  ['pl-k', 'keyword'],
+  ['pl-en', 'entity.name'],
+  ['pl-ent', 'entity.name.tag'],
+  ['pl-v', 'variable'],
+  ['pl-c1', 'constant'],
+  ['pl-e', 'entity'],
+  ['pl-pse', 'punctuation.section.embedded'],
+  ['pl-smi', 'storage.modifier.import'],
+  ['pl-s', 'storage'],
+  ['pl-s1', 'string'],
+  ['pl-kos', 'keyword.other.special-method'],
+  ['pl-pds', 'punctuation.definition.string'],
+  ['pl-sr', 'string.regexp'],
+]);
+
+const tagRegex = /^\/\*<[^\S\r\n]*(.*?)[^\S\r\n]*>\*\/$/
+
+function convert(node: Root, language: string): RenderList {
+  const converted = _convert(node, '', []);
+
+  return new RenderList(
+    converted.map(line => {
+      return new RenderLine(
+        line
+        .filter(([text]) => text !== '')
+        .map(([text, className]) => {
+          const styles = rules.get(`.${className}`);
+          const spanColor = styles?.has('color') ? styles.get('color') : null;
+          const type = classType.get(className) ?? '';
+          let tag: string | undefined;
+          if (type === 'comment' && tagRegex.test(text)) {
+            [, tag] = text.match(tagRegex)
+          }
+          return new RenderToken(
+            text, {
+              color: spanColor || undefined,
+              type,
+              tag,
+            });
+        }));
+    }),
+    language,
+  );
 }
 
-function _convert(node: Root | RootContent, color: string | null, list: RenderList = []): RenderList {
+function _convert(
+  node: Root | RootContent,
+  parentClass: string,
+  list: [string, string][][] = []
+): [string, string][][] {
   switch (node.type) {
     case "element":
       console.assert(node.properties, 'element node did not have properties')
@@ -55,23 +131,21 @@ function _convert(node: Root | RootContent, color: string | null, list: RenderLi
       const classList = node?.properties?.className as string[];
       console.assert(classList.length === 1, 'properties too long');
       const className = classList[0] as string;
-      const styles = rules.get(`.${className}`);
-      const spanColor = styles?.has('color') ? styles.get('color') : null;
-      // console.assert(classType.has(className), `className ${className} missing`);
-      node.children?.forEach(child => _convert(child, spanColor, list));
+      console.assert(classType.has(className), `className ${className} missing`);
+      node.children?.forEach(child => _convert(child, className, list));
       break;
     case "root":
       list.push([]);
-      node.children?.forEach(child => _convert(child, null, list));
+      node.children?.forEach(child => _convert(child, '', list));
       break;
     case "text":
       console.assert(node.value, 'text node did not have value');
       const text = node.value as string;
       const [first, ...rest] = text.split('\n');
-      last(list).push(color ? [first, color] : [first]);
+      last(list).push([first, parentClass]);
       for (const text of rest) {
         list.push([]);
-        last(list).push(color ? [text, color] : [text]);
+        last(list).push([text, parentClass]);
       }
       break;
   }
@@ -88,38 +162,4 @@ function* walkRules(ast: Stylesheet): Generator<Rule, void, void> {
       }
     }
   }
-}
-
-type Transformation = ['C' | 'D' | 'K', string, string?][][];
-
-function splitText(thang: RenderList) {
-  return thang.map((line: [string, string?][]) => line.flatMap(
-    (token: [string, string?]): [string, string?][] => {
-      if (token.length === 1) {
-        return token[0].split('').map(char => [char]);
-      }
-      return [token];
-    }
-  ));
-}
-
-export async function transform(lhs: string, rhs: string, language: string): Promise<Transformation> {
-  const lhp = splitText(await parse(lhs, language));
-  const rhp = splitText(await parse(rhs, language));
-  const result = structuredClone(lhp) as string[][][];
-  
-  result.forEach(line => line.forEach(token => token.unshift('K')));
-
-  diff(lhp, rhp)?.forEach(change => {
-    if (change.kind === 'E') {
-      const [line, at, which] = change.path as [number, number, number?];
-      if (which === 0) {
-        result[line][at][0] = 'D';
-        const created = ['C', <unknown>change.rhs as string];
-        if (lhp[line][at].length === 2) created.push(rhp[line][at][1] as string);
-        result[line].splice(at + 1, 0, created);
-      }
-    }
-  })
-  return result as Transformation;
 }

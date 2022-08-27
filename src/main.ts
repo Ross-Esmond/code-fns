@@ -35,13 +35,13 @@ context.strokeStyle = 'white';
 function draw(root: RenderList) {
   root.forEach((line, ln) => {
     let x = 0;
-    line.forEach(token => {
+    line.tokens.forEach(token => {
       context.save();
-      if (token.length === 2) {
-        context.fillStyle = token[1] as string;
+      if (token.color) {
+        context.fillStyle = token.color;
       }
-      context.fillText(token[0], x, 20*ln);
-      const measurement = context.measureText(token[0]);
+      context.fillText(token.text, x, 20*ln);
+      const measurement = context.measureText(token.text);
       x += measurement.width;
       context.restore();
     })
@@ -49,22 +49,3 @@ function draw(root: RenderList) {
 }
 
 tree.then(t => draw(t))
-
-/*
-const classType = new Map([
-  ['pl-c', 'comment'],
-  ['pl-k', 'keyword'],
-  ['pl-en', 'entity.name'],
-  ['pl-ent', 'entity.name.tag'],
-  ['pl-v', 'variable'],
-  ['pl-c1', 'constant'],
-  ['pl-e', 'entity'],
-  ['pl-pse', 'punctuation.section.embedded'],
-  ['pl-smi', 'storage.modifier.import'],
-  ['pl-s', 'storage'],
-  ['pl-s1', 'string'],
-  ['pl-kos', 'keyword.other.special-method'],
-  ['pl-pds', 'punctuation.definition.string'],
-  ['pl-sr', 'string.regexp'],
-]);
-*/
