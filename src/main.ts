@@ -3,12 +3,9 @@ import {parse, RenderList} from './parse'
 
 const tree = parse(`
 export default function* first(scene: Scene) {
-  yield* scene.transition(/* WHO */);
-  /* multi
-  * line
-  */
+  yield* scene.transition(/*<<WHO*/thing/*WHO>>*/);
   
-  // what
+  //: next-line scene
   scene.add(
     <Surface>
       <LinearLayout axis={Axis.Horizontal}>
@@ -32,17 +29,17 @@ context.font = '20px monospace';
 context.fillStyle = 'white';
 context.strokeStyle = 'white';
 
+
 function draw(root: RenderList) {
-  root.forEach((line, ln) => {
-    let x = 0;
+  const w = context.measureText('X').width;
+  root.lines.forEach(line => {
     line.tokens.forEach(token => {
       context.save();
       if (token.color) {
         context.fillStyle = token.color;
       }
-      context.fillText(token.text, x, 20*ln);
-      const measurement = context.measureText(token.text);
-      x += measurement.width;
+      const [ln, at] = token.position;
+      context.fillText(token.text, w*at, 20*ln);
       context.restore();
     })
   })

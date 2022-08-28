@@ -53,6 +53,7 @@ export class RenderToken {
 
   constructor(
     readonly text: string,
+    readonly position: [number, number],
     options?: {
       color?: string,
       type?: string,
@@ -95,7 +96,8 @@ function convert(node: Root, language: string): RenderList {
   const converted = _convert(node, '', []);
 
   return new RenderList(
-    converted.map(line => {
+    converted.map((line, ln) => {
+      let at = 0;
       return new RenderLine(
         line
         .filter(([text]) => text !== '')
@@ -107,12 +109,16 @@ function convert(node: Root, language: string): RenderList {
           if (type === 'comment' && tagRegex.test(text)) {
             [, tag] = text.match(tagRegex)
           }
-          return new RenderToken(
-            text, {
+          const result = new RenderToken(
+            text,
+            [ln, at],
+            {
               color: spanColor || undefined,
               type,
               tag,
             });
+          at += text.length;
+          return result;
         }));
     }),
     language,
