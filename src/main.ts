@@ -1,5 +1,5 @@
-import './style.css'
-import {transition, Transition} from './code'
+import './style.css';
+import { transition, Transition } from './code';
 
 const addition = `
 
@@ -13,24 +13,29 @@ const addition = `
   );
 `;
 
-const tran = transition('tsx',
-`export default function* first(scene: Scene) {
+const tran = transition(
+  'tsx',
+  `export default function* first(scene: Scene) {
   yield* scene.transition();/*<add>*/
   
   scene.canFinish();
 }
-`, {add: ''}, {add: addition});
+`,
+  { add: '' },
+  { add: addition },
+);
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <canvas id="canvas" width="1000" height="1000" />
-`
+`;
 
-const canvas = document.querySelector<HTMLCanvasElement>('#canvas') as HTMLCanvasElement;
+const canvas = document.querySelector<HTMLCanvasElement>(
+  '#canvas',
+) as HTMLCanvasElement;
 const context = canvas.getContext('2d') as CanvasRenderingContext2D;
 context.font = '20px monospace';
 context.fillStyle = 'white';
 context.strokeStyle = 'white';
-
 
 function draw(root: Transition, p: number) {
   p = easeOutExpo(p);
@@ -39,19 +44,19 @@ function draw(root: Transition, p: number) {
   root.retain.forEach(([text, color, [eln, eat], [sln, sat]]) => {
     context.save();
     if (color) context.fillStyle = color;
-    const x = w*(sat + p*(eat - sat)) + w;
-    const y = 20*(sln + p*(eln - sln)) + 20;
+    const x = w * (sat + p * (eat - sat)) + w;
+    const y = 20 * (sln + p * (eln - sln)) + 20;
     context.fillText(text, x, y);
     context.restore();
   });
   if (p > 0.95) {
     root.create.forEach(([text, color, [ln, at]]) => {
       context.save();
-      context.globalAlpha = (p - 0.95)*20
+      context.globalAlpha = (p - 0.95) * 20;
       if (color) context.fillStyle = color;
-      context.fillText(text, at*w + w, ln*20 + 20);
+      context.fillText(text, at * w + w, ln * 20 + 20);
       context.restore();
-    })
+    });
   }
 }
 
@@ -77,13 +82,13 @@ export function easeInOutCubic(value: number, from = 0, to = 1) {
   return linear(from, to, value);
 }
 
-tran.then(tran => {
-  console.log(tran)
+tran.then((tran) => {
+  console.log(tran);
   let start: number | null = null;
   const loop = (t: number) => {
     if (start === null) start = t;
-    draw(tran, Math.min(1, (t - <number>start)/1000));
-    requestAnimationFrame(loop)
+    draw(tran, Math.min(1, (t - <number>start) / 1000));
+    requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
-})
+});

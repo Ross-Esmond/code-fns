@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import {parse, color, substitute, transition} from './code';
+import { describe, it, expect } from 'vitest';
+import { parse, color, substitute, transition } from './code';
 
 describe('code', () => {
   it('should parse', async () => {
@@ -37,20 +37,22 @@ describe('code', () => {
         ],
       ]
     `);
-  })
+  });
 
   it('should replace tags', async () => {
-    expect(color(await substitute('tsx', '/*<t>*/', {t: 'true'})))
-      .toEqual(color(await parse('tsx', 'true')))
+    expect(color(await substitute('tsx', '/*<t>*/', { t: 'true' }))).toEqual(
+      color(await parse('tsx', 'true')),
+    );
   });
 
   it('should keep tags', async () => {
-    expect(color(await substitute('tsx', '/*<t>*/', {})))
-      .toEqual(color(await parse('tsx', '/*<t>*/')))
+    expect(color(await substitute('tsx', '/*<t>*/', {}))).toEqual(
+      color(await parse('tsx', '/*<t>*/')),
+    );
   });
 
   it('should transform', async () => {
-    expect(await transition('tsx', '/*<t>*/', {t: 'true'}, {t: 'false'}))
+    expect(await transition('tsx', '/*<t>*/', { t: 'true' }, { t: 'false' }))
       .toMatchInlineSnapshot(`
         {
           "create": [
@@ -75,12 +77,17 @@ describe('code', () => {
           ],
           "retain": [],
         }
-      `)
-  })
-  
+      `);
+  });
+
   it('should retain notes when substituting tag', async () => {
     const codez = `(/*<t>*/)=>{}`;
-    const transformation = await transition('tsx', codez, {t: ''}, {t: 't'});
+    const transformation = await transition(
+      'tsx',
+      codez,
+      { t: '' },
+      { t: 't' },
+    );
     expect(transformation).toMatchInlineSnapshot(`
       {
         "create": [
@@ -145,6 +152,6 @@ describe('code', () => {
           ],
         ],
       }
-    `)
-  })
-})
+    `);
+  });
+});

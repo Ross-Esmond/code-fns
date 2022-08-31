@@ -7,17 +7,24 @@
     "test": "vitest --ui",
     "dev": "vite",
     "build": "tsc",
+    "prepair": "tsc",
     "preview": "vite preview"
   },
   "devDependencies": {
     "@types/css": "^0.0.33",
     "@vitest/ui": "^0.22.1",
     "css": "^3.0.0",
+    "prettier": "^2.7.1",
     "typescript": "^4.6.4",
     "vite": "^3.0.7",
     "vitest": "^0.22.1"
   },
   "dependencies": {
     "@wooorm/starry-night": "^1.2.0"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "printWidth": 80,
+    "trailingComma": "all"
   }
 }

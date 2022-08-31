@@ -1,10 +1,10 @@
-import {createStarryNight, all, Root} from '@wooorm/starry-night'
-import type {RootContent} from 'hast'
-import style from './dark-style.json'
+import { createStarryNight, all, Root } from '@wooorm/starry-night';
+import type { RootContent } from 'hast';
+import style from './dark-style.json';
 
 const rules = new Map(
-  Object.entries(style)
-    .map(([k, v]) => [k, new Map(Object.entries(v))]));
+  Object.entries(style).map(([k, v]) => [k, new Map(Object.entries(v))]),
+);
 
 export function color(input: Char[]): [string, [number, number], string?][] {
   const result: [string, [number, number], string?][] = [];
@@ -13,8 +13,9 @@ export function color(input: Char[]): [string, [number, number], string?][] {
   for (let i = 0; i < input.length; i++) {
     const classList = input[i].classList;
     console.assert(classList.length <= 1, `classList too long`);
-    const styles = classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
-    console.assert(styles?.size ?? 0 <= 1, `more styles than just color`)
+    const styles =
+      classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
+    console.assert(styles?.size ?? 0 <= 1, `more styles than just color`);
     const color = styles?.get('color');
     if (input[i].char === '\n') {
       lastColor = Symbol();
@@ -38,26 +39,27 @@ const starryNightPromise = createStarryNight(all);
 export async function parse(language: string, code: string) {
   const starryNight = await starryNightPromise;
   const scope = starryNight.flagToScope(language);
-  if (typeof scope !== 'string') throw new Error(`language ${language} not found`);
+  if (typeof scope !== 'string')
+    throw new Error(`language ${language} not found`);
   const parsed = starryNight.highlight(code, scope);
   // console.log(inspect(parsed, false, null, true))
-  const converted = recurse(parsed)
+  const converted = recurse(parsed);
   // console.log(inspect(converted, false, null, true))
   return converted;
 }
 
 interface Char {
-  char: string,
-  classList: string[],
-  token: [number, number],
+  char: string;
+  classList: string[];
+  token: [number, number];
 }
 
 interface RepChar extends Char {
-  from: 'new' | 'old',
+  from: 'new' | 'old';
 }
 
 interface FormChar extends Char {
-  from: 'create' | 'keep' | 'delete',
+  from: 'create' | 'keep' | 'delete';
 }
 
 function last<T>(arr: T[][]): T[] {
@@ -67,21 +69,23 @@ function last<T>(arr: T[][]): T[] {
 
 function recurse(
   node: Root | RootContent,
-  classes: string[] = [], 
+  classes: string[] = [],
   result: Char[] = [],
 ) {
   if (node.type === 'element') {
     console.assert(node.tagName === 'span', `tag was not a span`);
     const className = (node.properties?.className ?? []) as string[];
-    console.assert(Array.isArray(className), `className was not an array`)
-    console.assert(className.length >= 1, `tag did not have a className`)
-    console.assert(className.length <= 1, `tag had too many classNames`)
-    node.children.forEach(child => recurse(child, [...classes, className[0]], result))
+    console.assert(Array.isArray(className), `className was not an array`);
+    console.assert(className.length >= 1, `tag did not have a className`);
+    console.assert(className.length <= 1, `tag had too many classNames`);
+    node.children.forEach((child) =>
+      recurse(child, [...classes, className[0]], result),
+    );
   } else if (node.type === 'root') {
-    node.children.forEach(child => recurse(child, [], result))
+    node.children.forEach((child) => recurse(child, [], result));
   } else if (node.type === 'text') {
     for (let i = 0; i < node.value.length; i++) {
-      console.assert(classes.length <= 1, `character has too many classes`)
+      console.assert(classes.length <= 1, `character has too many classes`);
       result.push({
         char: node.value[i],
         classList: classes,
@@ -108,7 +112,7 @@ function getSpan(tree: Char[], at: number) {
 export async function substitute(
   language: string,
   code: string | Char[],
-  subs: Record<string, string>
+  subs: Record<string, string>,
 ): Promise<RepChar[]> {
   const tree = Array.isArray(code) ? code : await parse(language, code);
   const replacements: [number, number][] = [];
@@ -128,7 +132,7 @@ export async function substitute(
     } else {
       final += span;
     }
-  })
+  });
   const parsed = await parse(language, final);
   let [r, ri] = [0, 0];
   let inReplacement = false;
@@ -149,8 +153,8 @@ export async function substitute(
     return {
       ...char,
       from: inReplacement ? 'new' : 'old',
-    }
-  })
+    };
+  });
 }
 
 export async function transform(
@@ -193,9 +197,9 @@ export async function transform(
 }
 
 export interface Transition {
-  delete: [string, string, [number, number]][],
-  create: [string, string, [number, number]][],
-  retain: [string, string, [number, number], [number, number]][],
+  delete: [string, string, [number, number]][];
+  create: [string, string, [number, number]][];
+  retain: [string, string, [number, number], [number, number]][];
 }
 
 export async function transition(
@@ -215,11 +219,16 @@ export async function transition(
   let [cln, cat] = [0, 0];
   let lastColor: Symbol | string = Symbol();
   let lastFrom: Symbol | string = Symbol();
-  chars.forEach(char => {
+  chars.forEach((char) => {
     const classList = char.classList;
     console.assert(classList.length <= 1, `classList too long`);
-    const styles = classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
-    console.assert((styles?.size ?? 0) <= 1, `more styles than just color`, styles)
+    const styles =
+      classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
+    console.assert(
+      (styles?.size ?? 0) <= 1,
+      `more styles than just color`,
+      styles,
+    );
     const color = styles?.get('color');
     if (char.char === '\n') {
       if (char.from === 'keep' || char.from === 'create') {
@@ -264,15 +273,3 @@ export async function transition(
   });
   return result;
 }
-
-
-
-
-
-
-
-
-
-
-
-
