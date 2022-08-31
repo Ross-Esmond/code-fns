@@ -1,42 +1,10 @@
 import {createStarryNight, all, Root} from '@wooorm/starry-night'
 import type {RootContent} from 'hast'
-import {inspect} from 'util'
-import styles from 'github-markdown-css/github-markdown-dark.css'
-import css, {Stylesheet, Rule, Declaration} from 'css'
+import style from './dark-style.json'
 
-const rules = new Map();
-const scopePrefix = '.markdown-body '
-const prefix = '.pl-'
-for (const rule of walkRules(css.parse(styles))) {
-  if (rule.selectors) {
-    const selectors = rule.selectors
-      .filter((d: string) => d.startsWith(scopePrefix))
-      .map((d: string) => d.slice(scopePrefix.length))
-      .filter((d: string) => d.startsWith(prefix))
-
-    if (selectors.length > 0) {
-      const settings = new Map();
-      rule.declarations?.forEach((declaration: Declaration) => {
-        settings.set(declaration.property, declaration.value);
-      })
-      selectors.forEach((selector: string) => {
-        rules.set(selector, settings)
-      })
-    }
-  }
-}
-
-function* walkRules(ast: Stylesheet): Generator<Rule, void, void> {
-  if (ast.type === 'stylesheet' && 'stylesheet' in ast && ast.stylesheet) {
-    for (const rule of ast.stylesheet.rules) {
-      if (rule.type === 'rule') {
-        yield rule
-      } else {
-        yield* walkRules(rule)
-      }
-    }
-  }
-}
+const rules = new Map(
+  Object.entries(style)
+    .map(([k, v]) => [k, new Map(Object.entries(v))]));
 
 export function color(input: Char[]): [string, [number, number], string?][] {
   const result: [string, [number, number], string?][] = [];
@@ -46,8 +14,8 @@ export function color(input: Char[]): [string, [number, number], string?][] {
     const classList = input[i].classList;
     console.assert(classList.length <= 1, `classList too long`);
     const styles = classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
-    console.assert(styles.size <= 1, `more styles than just color`)
-    const color = styles.get('color');
+    console.assert(styles?.size ?? 0 <= 1, `more styles than just color`)
+    const color = styles?.get('color');
     if (input[i].char === '\n') {
       lastColor = Symbol();
       ln++;
@@ -253,9 +221,7 @@ export async function transition(
     const styles = classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
     console.assert((styles?.size ?? 0) <= 1, `more styles than just color`, styles)
     const color = styles?.get('color');
-    console.log(char.char)
     if (char.char === '\n') {
-      console.log(char)
       if (char.from === 'keep' || char.from === 'create') {
         cln++;
         cat = 0;

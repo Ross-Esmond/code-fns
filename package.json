@@ -6,21 +6,18 @@
   "scripts": {
     "test": "vitest --ui",
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc",
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/css": "^0.0.33",
     "@vitest/ui": "^0.22.1",
+    "css": "^3.0.0",
     "typescript": "^4.6.4",
     "vite": "^3.0.7",
     "vitest": "^0.22.1"
   },
   "dependencies": {
-    "@types/css": "^0.0.33",
-    "@types/deep-diff": "^1.0.1",
-    "@wooorm/starry-night": "^1.2.0",
-    "css": "^3.0.0",
-    "deep-diff": "^1.0.2",
-    "github-markdown-css": "^5.1.0"
+    "@wooorm/starry-night": "^1.2.0"
   }
 }

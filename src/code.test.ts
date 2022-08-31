@@ -1,14 +1,8 @@
 import { describe, it, expect } from "vitest";
-import {parse, color, substitute, transform, transition} from './code';
-import {inspect} from 'util'
-
-const code = `
-function () {
-}`
+import {parse, color, substitute, transition} from './code';
 
 describe('code', () => {
   it('should parse', async () => {
-    // console.log(inspect(await parse('tsx', code), false, null, true))
     expect(color(await parse('tsx', '() => true'))).toMatchInlineSnapshot(`
       [
         [
