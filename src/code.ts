@@ -1,12 +1,32 @@
-import { createStarryNight, all, Root } from '@wooorm/starry-night';
-import type { RootContent } from 'hast';
+import { createStarryNight, all } from '@wooorm/starry-night';
+import type { Root, RootContent } from 'hast';
 import style from './dark-style.json';
 
 const rules = new Map(
   Object.entries(style).map(([k, v]) => [k, new Map(Object.entries(v))]),
 );
 
-export function color(input: Char[]): [string, [number, number], string?][] {
+export type Parsable = [string, string] | { lang: string; code: string };
+
+export interface Parsed<T extends Char> {
+  language: string;
+  chars: T[];
+}
+
+function ensureParsed(input: Parsed<Char> | Parsable): Parsed<Char> {
+  if (Array.isArray(input)) {
+    return parse(input[0], input[1]);
+  } else if ('code' in input) {
+    return parse(input.lang, input.code);
+  } else {
+    return input as Parsed<Char>;
+  }
+}
+
+export function tokenColors(
+  code: Parsed<Char> | Parsable,
+): [string, [number, number], string?][] {
+  const input = ensureParsed(code).chars;
   const result: [string, [number, number], string?][] = [];
   let lastColor = Symbol();
   let [ln, at] = [0, 0];
@@ -15,7 +35,7 @@ export function color(input: Char[]): [string, [number, number], string?][] {
     console.assert(classList.length <= 1, `classList too long`);
     const styles =
       classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
-    console.assert(styles?.size ?? 0 <= 1, `more styles than just color`);
+    console.assert((styles?.size ?? 0) <= 1, `more styles than just color`);
     const color = styles?.get('color');
     if (input[i].char === '\n') {
       lastColor = Symbol();
@@ -34,31 +54,50 @@ export function color(input: Char[]): [string, [number, number], string?][] {
   return result;
 }
 
+let starryNight: {
+  flagToScope: (s: string) => string | undefined;
+  highlight: (c: string, s: string) => Root;
+} | null = null;
 const starryNightPromise = createStarryNight(all);
+starryNightPromise.then((sn) => (starryNight = sn));
 
-export async function parse(language: string, code: string) {
-  const starryNight = await starryNightPromise;
-  const scope = starryNight.flagToScope(language);
-  if (typeof scope !== 'string')
-    throw new Error(`language ${language} not found`);
-  const parsed = starryNight.highlight(code, scope);
-  // console.log(inspect(parsed, false, null, true))
-  const converted = recurse(parsed);
-  // console.log(inspect(converted, false, null, true))
-  return converted;
+export function ready() {
+  return starryNightPromise;
 }
 
-interface Char {
+export function toString(code: Parsed<Char> | Parsable): string {
+  const parsed = ensureParsed(code);
+  const result: string[] = [];
+  parsed.chars.forEach(({ char }) => result.push(char));
+  return result.join('');
+}
+
+export function parse(language: string, code: string): Parsed<Char> {
+  if (starryNight == null)
+    throw new Error('you must await ready() to initialize package');
+  const scope = starryNight.flagToScope(language);
+  if (typeof scope !== 'string') {
+    throw new Error(`language ${language} not found`);
+  }
+  const parsed = starryNight.highlight(code, scope);
+  const converted = recurse(parsed);
+  return {
+    language,
+    chars: converted,
+  };
+}
+
+export interface Char {
   char: string;
   classList: string[];
   token: [number, number];
 }
 
-interface RepChar extends Char {
+export interface RepChar extends Char {
   from: 'new' | 'old';
 }
 
-interface FormChar extends Char {
+export interface FormChar extends Char {
   from: 'create' | 'keep' | 'delete';
 }
 
@@ -109,12 +148,13 @@ function getSpan(tree: Char[], at: number) {
   return result;
 }
 
-export async function substitute(
-  language: string,
-  code: string | Char[],
+export function substitute(
+  code: Parsed<Char> | Parsable,
   subs: Record<string, string>,
-): Promise<RepChar[]> {
-  const tree = Array.isArray(code) ? code : await parse(language, code);
+): Parsed<RepChar> {
+  const parsed = ensureParsed(code);
+  const language = parsed.language;
+  const tree = parsed.chars;
   const replacements: [number, number][] = [];
   let final = '';
   tree.forEach((char, at) => {
@@ -133,44 +173,47 @@ export async function substitute(
       final += span;
     }
   });
-  const parsed = await parse(language, final);
+  const reparsed = parse(language, final);
   let [r, ri] = [0, 0];
   let inReplacement = false;
-  return parsed.map((char, at) => {
-    if (inReplacement) {
-      ri++;
-      if (ri === replacements[r][1]) {
-        inReplacement = false;
-        r++;
+  return {
+    language,
+    chars: reparsed.chars.map((char: Char, at: number) => {
+      if (inReplacement) {
+        ri++;
+        if (ri === replacements[r][1]) {
+          inReplacement = false;
+          r++;
+        }
+      } else if (r < replacements.length) {
+        const [rat] = replacements[r];
+        if (rat === at) {
+          inReplacement = true;
+        }
       }
-    } else if (r < replacements.length) {
-      const [rat] = replacements[r];
-      if (rat === at) {
-        inReplacement = true;
-      }
-    }
 
-    return {
-      ...char,
-      from: inReplacement ? 'new' : 'old',
-    };
-  });
+      return {
+        ...char,
+        from: inReplacement ? 'new' : 'old',
+      };
+    }),
+  };
 }
 
-export async function transform(
-  language: string,
-  tree: Char[],
+export function transform(
+  code: Parsed<Char> | Parsable,
   start: Record<string, string>,
   final: Record<string, string>,
-): Promise<FormChar[]> {
-  const before = await substitute(language, tree, start);
-  const after = await substitute(language, tree, final);
+): FormChar[] {
+  const tree = ensureParsed(code);
+  const before = substitute(tree, start);
+  const after = substitute(tree, final);
   let [bat] = [0];
   let [aat] = [0];
   const chars: FormChar[] = [];
-  while (bat < before.length || aat < after.length) {
-    const bchar = before[bat] ?? null;
-    const achar = after[aat] ?? null;
+  while (bat < before.chars.length || aat < after.chars.length) {
+    const bchar = before.chars[bat] ?? null;
+    const achar = after.chars[aat] ?? null;
     if (bchar?.from === 'old' && achar?.from === 'old') {
       chars.push({
         ...achar,
@@ -197,19 +240,18 @@ export async function transform(
 }
 
 export interface Transition {
-  delete: [string, string, [number, number]][];
-  create: [string, string, [number, number]][];
-  retain: [string, string, [number, number], [number, number]][];
+  delete: [string, [number, number], string?][];
+  create: [string, [number, number], string?][];
+  retain: [string, [number, number], [number, number], string?][];
 }
 
-export async function transition(
-  language: string,
-  code: string,
+export function transition(
+  code: Parsed<Char> | Parsable,
   start: Record<string, string>,
   final: Record<string, string>,
-): Promise<Transition> {
-  const tree = await parse(language, code);
-  const chars = await transform(language, tree, start, final);
+): Transition {
+  const tree = ensureParsed(code);
+  const chars = transform(tree, start, final);
   const result: Transition = {
     delete: [],
     create: [],
@@ -257,13 +299,26 @@ export async function transition(
       lastColor = color;
     } else {
       if (char.from === 'delete') {
-        result.delete.push([char.char, color, [dln, dat]]);
+        result.delete.push([
+          char.char,
+          [dln, dat],
+          ...((color ? [color] : []) as [string?]),
+        ]);
         dat++;
       } else if (char.from === 'create') {
-        result.create.push([char.char, color, [cln, cat]]);
+        result.create.push([
+          char.char,
+          [cln, cat],
+          ...((color ? [color] : []) as [string?]),
+        ]);
         cat++;
       } else if (char.from === 'keep') {
-        result.retain.push([char.char, color, [cln, cat], [dln, dat]]);
+        result.retain.push([
+          char.char,
+          [dln, dat],
+          [cln, cat],
+          ...((color ? [color] : []) as [string?]),
+        ]);
         dat++;
         cat++;
       }

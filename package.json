@@ -1,13 +1,27 @@
 {
   "name": "code-fns",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "A library for visualizing code.",
+  "license": "MIT",
   "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ross-Esmond/code-fns.git"
+  },
+  "keywords": [
+    "syntax",
+    "code",
+    "ast",
+    "highlight",
+    "highlighting"
+  ],
   "scripts": {
     "test": "vitest --ui",
     "dev": "vite",
     "build": "tsc",
-    "prepair": "tsc",
+    "prepublish": "tsc",
     "preview": "vite preview",
     "prettier": "prettier --write .",
     "lint": "eslint ./src/"
