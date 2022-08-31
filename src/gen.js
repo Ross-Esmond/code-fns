@@ -1,5 +1,4 @@
 import css from 'css';
-import { inspect } from 'util';
 import fs from 'fs';
 
 const styles = fs.readFileSync('./dark.txt').toString();

@@ -8,12 +8,17 @@
     "dev": "vite",
     "build": "tsc",
     "prepair": "tsc",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prettier": "prettier --write .",
+    "lint": "eslint ./src/"
   },
   "devDependencies": {
     "@types/css": "^0.0.33",
+    "@typescript-eslint/eslint-plugin": "^5.36.1",
+    "@typescript-eslint/parser": "^5.36.1",
     "@vitest/ui": "^0.22.1",
     "css": "^3.0.0",
+    "eslint": "^8.23.0",
     "prettier": "^2.7.1",
     "typescript": "^4.6.4",
     "vite": "^3.0.7",

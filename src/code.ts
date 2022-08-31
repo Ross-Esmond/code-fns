@@ -217,8 +217,8 @@ export async function transition(
   };
   let [dln, dat] = [0, 0];
   let [cln, cat] = [0, 0];
-  let lastColor: Symbol | string = Symbol();
-  let lastFrom: Symbol | string = Symbol();
+  let lastColor: symbol | string = Symbol();
+  let lastFrom: symbol | string = Symbol();
   chars.forEach((char) => {
     const classList = char.classList;
     console.assert(classList.length <= 1, `classList too long`);

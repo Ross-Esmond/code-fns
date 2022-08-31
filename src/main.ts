@@ -25,7 +25,11 @@ const tran = transition(
   { add: addition },
 );
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
+const target = document.querySelector<HTMLDivElement>('#app');
+
+if (target == null) throw new Error('app element not found');
+
+target.innerHTML = `
   <canvas id="canvas" width="1000" height="1000" />
 `;
 
