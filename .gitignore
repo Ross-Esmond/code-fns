@@ -13,6 +13,9 @@ lib
 dist-ssr
 *.local
 
+# c8 coverage files
+coverage
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

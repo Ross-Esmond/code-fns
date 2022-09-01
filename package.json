@@ -24,12 +24,14 @@
     "prepublish": "tsc",
     "preview": "vite preview",
     "prettier": "prettier --write .",
-    "lint": "eslint ./src/"
+    "lint": "eslint ./src/",
+    "coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@types/css": "^0.0.33",
     "@typescript-eslint/eslint-plugin": "^5.36.1",
     "@typescript-eslint/parser": "^5.36.1",
+    "@vitest/coverage-c8": "^0.22.1",
     "@vitest/ui": "^0.22.1",
     "css": "^3.0.0",
     "eslint": "^8.23.0",
