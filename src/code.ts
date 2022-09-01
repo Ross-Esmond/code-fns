@@ -10,7 +10,172 @@ export type Parsable = [string, string] | { lang: string; code: string };
 
 export interface Parsed<T extends Char> {
   language: string;
+  lines: Line[];
   chars: T[];
+}
+
+export interface Line {
+  tags: string[];
+}
+
+export interface Char {
+  char: string;
+  classList: string[];
+  token: [number, number];
+  sections: string[];
+}
+
+export interface RepChar extends Char {
+  from: 'new' | 'old';
+}
+
+export interface FormChar extends Char {
+  from: 'create' | 'keep' | 'delete';
+}
+
+export function parse(language: string, code: string): Parsed<Char> {
+  if (starryNight == null) {
+    throw new Error('you must await ready() to initialize package');
+  }
+  const scope = starryNight.flagToScope(language);
+  if (typeof scope !== 'string') {
+    throw new Error(`language ${language} not found`);
+  }
+  const parsed = starryNight.highlight(code, scope);
+  const converted = recurse(parsed);
+  return markTree({
+    language,
+    lines: [],
+    chars: converted,
+  });
+}
+
+function recurse(
+  node: Root | RootContent,
+  classes: string[] = [],
+  result: Char[] = [],
+) {
+  if (node.type === 'element') {
+    console.assert(node.tagName === 'span', `tag was not a span`);
+    const className = (node.properties?.className ?? []) as string[];
+    console.assert(Array.isArray(className), `className was not an array`);
+    console.assert(className.length >= 1, `tag did not have a className`);
+    console.assert(className.length <= 1, `tag had too many classNames`);
+    node.children.forEach((child) =>
+      recurse(child, [...classes, className[0]], result),
+    );
+  } else if (node.type === 'root') {
+    node.children.forEach((child) => recurse(child, [], result));
+  } else if (node.type === 'text') {
+    for (let i = 0; i < node.value.length; i++) {
+      console.assert(classes.length <= 1, `character has too many classes`);
+      result.push({
+        char: node.value[i],
+        classList: classes,
+        token: [i, node.value.length],
+        sections: [],
+      });
+    }
+  }
+  return result;
+}
+
+const nextLineRegex = /^\/\/:[^\S\n]*next-line[^\S\n]+([^\n]+?)[^\S\n]*$/;
+const thisLineRegex = /^\/\/:[^\S\n]*this-line[^\S\n]+([^\n]+?)[^\S\n]*$/;
+const blockStartRegex = /^\/\/<[^\S\n]*([^\n]+?)[^\S\n]*$/;
+const blockEndRegex = /^\/\/>[^\S\n]*$/;
+const sectionStartRegex = /^\/\*<<[^\S\n]*([^\n]+?)[^\S\n]*\*\/$/;
+const sectionEndRegex = /^\/\*>>[^\S\n]*\*\/$/;
+const tagRegex = /^\/\*<[^\S\r\n]*(.*?)[^\S\r\n]*>\*\/$/;
+
+const specialTypes: [RegExp, string[]][] = [
+  [nextLineRegex, ['nextLine', 'line']],
+  [thisLineRegex, ['thisLine', 'line']],
+  [blockStartRegex, ['blockStart', 'line']],
+  [blockEndRegex, ['blockEnd', 'line']],
+  [sectionStartRegex, ['sectionStart', 'span']],
+  [sectionEndRegex, ['sectionEnd', 'span']],
+  [tagRegex, ['tag', 'span']],
+];
+function getSpecialType(span: string) {
+  for (const [regex, result] of specialTypes) {
+    if (regex.test(span)) return result;
+  }
+  return [];
+}
+
+function* spans(
+  chars: Char[],
+): Generator<[string[], string, number], void, void> {
+  let i = 0;
+  while (i < chars.length) {
+    const char = chars[i];
+    console.assert(char.token[0] === 0, `token was not beginning of span`);
+    const span = getSpan(chars, i);
+    yield [char.classList, span, i];
+    i += char.token[1];
+  }
+}
+
+function markTree(parsed: Parsed<Char>): Parsed<Char> {
+  const chars = parsed.chars;
+  const lineCount =
+    1 +
+    chars.reduce((prior, { char }) => {
+      return prior + (char === '\n' ? 1 : 0);
+    }, 0);
+  const lines: { tags: string[] }[] = new Array(lineCount)
+    .fill(1)
+    .map(() => ({ tags: [] }));
+  let ln = 0;
+  const blocks = [];
+  const sections = [];
+  let sectionHold = null;
+  const result: Char[] = [];
+  for (let i = 0; i < chars.length; i++) {
+    const char = chars[i];
+
+    if (char.token[0] === 0 && sectionHold != null) {
+      sections.push(sectionHold);
+      sectionHold = null;
+    }
+
+    result.push({
+      ...char,
+      sections: [...sections],
+    });
+
+    if (char.token[0] !== 0) {
+      continue;
+    }
+
+    const span = getSpan(chars, i);
+    if (char.char === '\n') {
+      ln++;
+      lines[ln].tags.push(...blocks);
+    } else if (char.classList.length === 1 && char.classList[0] === 'pl-c') {
+      if (nextLineRegex.test(span)) {
+        const name = span.match(nextLineRegex)?.[1] as string;
+        lines[ln + 1].tags.push(name);
+      } else if (thisLineRegex.test(span)) {
+        const name = span.match(thisLineRegex)?.[1] as string;
+        lines[ln].tags.push(name);
+      } else if (blockStartRegex.test(span)) {
+        blocks.push(span.match(blockStartRegex)?.[1] as string);
+      } else if (blockEndRegex.test(span)) {
+        blocks.pop();
+      } else if (sectionStartRegex.test(span)) {
+        sectionHold = span.match(sectionStartRegex)?.[1] as string;
+      } else if (sectionEndRegex.test(span)) {
+        sections.pop();
+      }
+    }
+  }
+  return {
+    ...parsed,
+    lines,
+    chars: result,
+  };
 }
 
 function ensureParsed(input: Parsed<Char> | Parsable): Parsed<Char> {
@@ -72,71 +237,6 @@ export function toString(code: Parsed<Char> | Parsable): string {
   return result.join('');
 }
 
-export function parse(language: string, code: string): Parsed<Char> {
-  if (starryNight == null)
-    throw new Error('you must await ready() to initialize package');
-  const scope = starryNight.flagToScope(language);
-  if (typeof scope !== 'string') {
-    throw new Error(`language ${language} not found`);
-  }
-  const parsed = starryNight.highlight(code, scope);
-  const converted = recurse(parsed);
-  return {
-    language,
-    chars: converted,
-  };
-}
-
-export interface Char {
-  char: string;
-  classList: string[];
-  token: [number, number];
-}
-
-export interface RepChar extends Char {
-  from: 'new' | 'old';
-}
-
-export interface FormChar extends Char {
-  from: 'create' | 'keep' | 'delete';
-}
-
-function last<T>(arr: T[][]): T[] {
-  if (arr.length === 0) arr.push([]);
-  return arr[arr.length - 1];
-}
-
-function recurse(
-  node: Root | RootContent,
-  classes: string[] = [],
-  result: Char[] = [],
-) {
-  if (node.type === 'element') {
-    console.assert(node.tagName === 'span', `tag was not a span`);
-    const className = (node.properties?.className ?? []) as string[];
-    console.assert(Array.isArray(className), `className was not an array`);
-    console.assert(className.length >= 1, `tag did not have a className`);
-    console.assert(className.length <= 1, `tag had too many classNames`);
-    node.children.forEach((child) =>
-      recurse(child, [...classes, className[0]], result),
-    );
-  } else if (node.type === 'root') {
-    node.children.forEach((child) => recurse(child, [], result));
-  } else if (node.type === 'text') {
-    for (let i = 0; i < node.value.length; i++) {
-      console.assert(classes.length <= 1, `character has too many classes`);
-      result.push({
-        char: node.value[i],
-        classList: classes,
-        token: [i, node.value.length],
-      });
-    }
-  }
-  return result;
-}
-
-const tagRegex = /^\/\*<[^\S\r\n]*(.*?)[^\S\r\n]*>\*\/$/;
-
 function getSpan(tree: Char[], at: number) {
   const [back, length] = tree[at].token;
   const start = at - back;
@@ -146,6 +246,56 @@ function getSpan(tree: Char[], at: number) {
     result += tree[i].char;
   }
   return result;
+}
+
+/**
+ * Removes all code-fns tags.
+ *
+ * @param code - the parsed or parsable code to clean
+ */
+export function clean(code: Parsed<Char> | Parsable): Parsed<Char> {
+  const parsed = ensureParsed(code);
+  const result: string[] = [];
+  const sections: string[][] = [];
+  let lineNumber = 0;
+  let lineSkip = false;
+  const lines = [];
+  for (const [classList, span, i] of spans(parsed.chars)) {
+    if (span === '\n') lineNumber++;
+    if (lineSkip) {
+      console.assert(span === '\n', `expected a new line`);
+      lineSkip = false;
+      continue;
+    } else if (span === '\n') {
+      lines.push(parsed.lines[lineNumber]);
+    }
+    console.assert(classList.length === 1, `multiple classes found`);
+    const specialTypes = getSpecialType(span);
+    if (classList[0] !== 'pl-c' || specialTypes.length === 0) {
+      result.push(span);
+      const charSections = new Array(span.length).fill(
+        parsed.chars[i].sections,
+      );
+      sections.push(...charSections);
+    } else if (specialTypes.includes('line')) {
+      lineSkip = true;
+    }
+  }
+  lines.push(parsed.lines[lineNumber]);
+  const reparsed = parse(parsed.language, result.join(''));
+  return {
+    ...reparsed,
+    lines,
+    chars: reparsed.chars.map((char, i) => ({
+      ...char,
+      sections: sections[i],
+    })),
+  };
+}
+
+function last<T>(arr: T[][]): T[] {
+  if (arr.length === 0) arr.push([]);
+  return arr[arr.length - 1];
 }
 
 export function substitute(
@@ -178,6 +328,7 @@ export function substitute(
   let inReplacement = false;
   return {
     language,
+    lines: [],
     chars: reparsed.chars.map((char: Char, at: number) => {
       if (inReplacement) {
         ri++;
