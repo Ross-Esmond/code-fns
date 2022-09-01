@@ -11,7 +11,7 @@ npm install code-fns
 ## Purpose
 
 Most code highlighters in JavaScript rely on HTML and CSS. When working outside
-of a standard webpage, however, these formats become difficult to use. Code-fns
+of a standard web page, however, these formats become difficult to use. Code-fns
 is domain-agnostic, and will export tokens as plain objects to be converted to
 whatever format you choose. Specifically, code-fns was built for use in the
 Motion Canvas project, for visualizing code in videos and animations. Code-fns
@@ -41,7 +41,7 @@ const tokens = tokenColors(['tsx', '() => true']);
 ```
 
 You will receive an array of tokens, which are themselves a tuple of a string, a
-location, and a color, when applicable. Colors are based on the github dark
+location, and a color, when applicable. Colors are based on the GitHub dark
 theme, though we hope to add more themes in the future.
 
 ```tsx
