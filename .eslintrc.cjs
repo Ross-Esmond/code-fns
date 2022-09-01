@@ -10,6 +10,11 @@ module.exports = {
     ecmaVersion: 'latest',
     sourceType: 'module',
   },
-  plugins: ['@typescript-eslint'],
-  rules: {},
+  plugins: [
+    '@typescript-eslint',
+    'eslint-plugin-tsdoc',
+  ],
+  rules: {
+    "tsdoc/syntax": "error",
+  },
 };

@@ -33,6 +33,7 @@
     "@vitest/ui": "^0.22.1",
     "css": "^3.0.0",
     "eslint": "^8.23.0",
+    "eslint-plugin-tsdoc": "^0.2.16",
     "prettier": "^2.7.1",
     "typescript": "^4.6.4",
     "vite": "^3.0.7",
