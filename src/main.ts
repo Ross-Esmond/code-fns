@@ -1,5 +1,7 @@
 import './style.css';
-import { transition, Transition } from './code';
+import { transition, ready, Transition } from './code';
+
+await ready();
 
 const addition = `
 
@@ -14,13 +16,15 @@ const addition = `
 `;
 
 const tran = transition(
-  'tsx',
-  `export default function* first(scene: Scene) {
+  [
+    'tsx',
+    `export default function* first(scene: Scene) {
   yield* scene.transition();/*<add>*/
   
   scene.canFinish();
 }
 `,
+  ],
   { add: '' },
   { add: addition },
 );
@@ -42,57 +46,53 @@ context.fillStyle = 'white';
 context.strokeStyle = 'white';
 
 function draw(root: Transition, p: number) {
-  p = easeOutExpo(p);
+  const till = 0.9;
+  let main = Math.min(1, p / till);
+  main = physicsEase(0.3)(main);
   context.clearRect(0, 0, 1000, 1000);
   const w = context.measureText('X').width;
-  root.retain.forEach(([text, color, [eln, eat], [sln, sat]]) => {
+  root.retain.forEach(([text, [sln, sat], [eln, eat], color]) => {
     context.save();
     if (color) context.fillStyle = color;
-    const x = w * (sat + p * (eat - sat)) + w;
-    const y = 20 * (sln + p * (eln - sln)) + 20;
+    const x = w * (sat + main * (eat - sat)) + w;
+    const y = 30 * (sln + main * (eln - sln)) + 30;
     context.fillText(text, x, y);
     context.restore();
   });
-  if (p > 0.95) {
-    root.create.forEach(([text, color, [ln, at]]) => {
+  const when = 0.7;
+  if (p > when) {
+    const progress = (p - when) * (1 / (1 - when));
+    root.create.forEach(([text, [ln, at], color]) => {
       context.save();
-      context.globalAlpha = (p - 0.95) * 20;
+      context.globalAlpha = progress;
       if (color) context.fillStyle = color;
-      context.fillText(text, at * w + w, ln * 20 + 20);
+      context.fillText(text, 30 * (1 - progress) + at * w + w, ln * 30 + 30);
       context.restore();
     });
   }
 }
 
-export function linear(from: number, to: number, value: number) {
-  return from + (to - from) * value;
-}
-export function easeInOutCirc(value: number, from = 0, to = 1) {
-  value =
-    value < 0.5
-      ? (1 - Math.sqrt(1 - Math.pow(2 * value, 2))) / 2
-      : (Math.sqrt(1 - Math.pow(-2 * value + 2, 2)) + 1) / 2;
-  return linear(from, to, value);
-}
-export function easeOutExpo(value: number, from = 0, to = 1) {
-  value = value === 1 ? 1 : 1 - Math.pow(2, -10 * value);
-  return linear(from, to, value);
-}
-export function easeInOutCubic(value: number, from = 0, to = 1) {
-  value =
-    value < 0.5
-      ? 4 * value * value * value
-      : 1 - Math.pow(-2 * value + 2, 3) / 2;
-  return linear(from, to, value);
-}
-
-tran.then((tran) => {
-  console.log(tran);
-  let start: number | null = null;
-  const loop = (t: number) => {
-    if (start === null) start = t;
-    draw(tran, Math.min(1, (t - <number>start) / 1000));
-    requestAnimationFrame(loop);
+const physicsEase = (transition: number) => {
+  if (transition < 0 || 0.5 < transition) {
+    throw new Error(`transition must be at least 0 and at most 0.5`);
+  }
+  const a = -Math.pow(2 * (transition ** 2 - transition), -1);
+  return (value: number) => {
+    if (value < transition) {
+      return a * value ** 2;
+    } else if (transition <= value && value <= 1 - transition) {
+      const slope = 2 * a * transition;
+      return slope * (value - transition) + a * transition ** 2;
+    } else {
+      return -a * value ** 2 + 2 * a * value - a + 1;
+    }
   };
+};
+
+let start: number | null = null;
+const loop = (t: number) => {
+  if (start === null) start = t;
+  draw(tran, Math.min(1, (t - <number>start) / 600));
   requestAnimationFrame(loop);
-});
+};
+requestAnimationFrame(loop);

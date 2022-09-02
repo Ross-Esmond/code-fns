@@ -1,13 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  parse,
-  tokenColors,
-  substitute,
-  transition,
-  ready,
-  toString,
-  clean,
-} from './code';
+import { parse, substitute, transition, ready, toString, clean } from './code';
 
 describe('code', () => {
   it('should stringify', async () => {
@@ -108,7 +100,7 @@ describe('code', () => {
 
   it('should mark tag blocks', async () => {
     await ready();
-    const code = 'a //< tag\nb\n//>';
+    const code = 'a //<< tag\nb\n//>>';
     expect(parse('tsx', code).lines).toMatchInlineSnapshot(`
       [
         {
@@ -130,7 +122,7 @@ describe('code', () => {
 
   it('should mark nested tag blocks', async () => {
     await ready();
-    const code = '//<a\n//<b\nl\n//>\n//>';
+    const code = '//<<a\n//<<b\nl\n//>>\n//>>';
     expect(parse('tsx', code).lines).toMatchInlineSnapshot(`
       [
         {
@@ -183,58 +175,40 @@ describe('code', () => {
       ]
     `);
   });
-});
 
-describe('utils', () => {
-  it('should color tokens', async () => {
+  it('should mark nested section characters', async () => {
     await ready();
-    expect(tokenColors(['tsx', '() => true'])).toMatchInlineSnapshot(`
+    const code = '/*<<u*/a/*<<v*/b/*>>*/c/*>>*/';
+    expect(clean(parse('tsx', code)).chars.map(({ sections }) => sections))
+      .toMatchInlineSnapshot(`
       [
         [
-          "() ",
-          [
-            0,
-            0,
-          ],
+          "u",
         ],
         [
-          "=>",
-          [
-            0,
-            3,
-          ],
-          "#ff7b72",
+          "v",
+          "u",
         ],
         [
-          " ",
-          [
-            0,
-            5,
-          ],
-        ],
-        [
-          "true",
-          [
-            0,
-            6,
-          ],
-          "#79c0ff",
+          "u",
         ],
       ]
     `);
   });
+});
 
+describe('utils', () => {
   it('should replace tags', async () => {
     await ready();
-    expect(tokenColors(substitute(['tsx', '/*<t>*/'], { t: 'true' }))).toEqual(
-      tokenColors(['tsx', 'true']),
+    expect(toString(substitute(['tsx', '/*<t>*/'], { t: 'true' }))).toEqual(
+      toString(parse('tsx', 'true')),
     );
   });
 
   it('should keep tags', async () => {
     await ready();
-    expect(tokenColors(substitute(['tsx', '/*<t>*/'], {}))).toEqual(
-      tokenColors(['tsx', '/*<t>*/']),
+    expect(toString(substitute(['tsx', '/*<t>*/'], {}))).toEqual(
+      toString(parse('tsx', '/*<t>*/')),
     );
   });
 
@@ -336,6 +310,7 @@ describe('clean', () => {
         "language": "tsx",
         "lines": [
           {
+            "number": 1,
             "tags": [
               "t",
             ],

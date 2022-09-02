@@ -6,23 +6,47 @@ const rules = new Map(
   Object.entries(style).map(([k, v]) => [k, new Map(Object.entries(v))]),
 );
 
+export function getColor(classList: string[]): string | undefined {
+  console.assert(classList.length <= 1, `classList too long`);
+  const styles =
+    classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
+  console.assert((styles?.size ?? 0) <= 1, `more styles than just color`);
+  const color = styles?.get('color');
+  return color;
+}
+
 export type Parsable = [string, string] | { lang: string; code: string };
 
-export interface Parsed<T extends Char> {
+export interface Parsed<T extends Char = Char, L extends Line = Line> {
   language: string;
-  lines: Line[];
+  lines: L[];
   chars: T[];
+}
+
+export interface Tokenized<T extends Token = Token, L extends Line = Line> {
+  language: string;
+  lines: L[];
+  tokens: T[];
 }
 
 export interface Line {
   tags: string[];
+  number?: number;
 }
 
-export interface Char {
-  char: string;
+export interface Text {
   classList: string[];
-  token: [number, number];
   sections: string[];
+}
+
+export interface ColorCoded {
+  color?: string;
+  background?: string;
+}
+
+export interface Char extends Text {
+  char: string;
+  token: [number, number];
 }
 
 export interface RepChar extends Char {
@@ -31,6 +55,11 @@ export interface RepChar extends Char {
 
 export interface FormChar extends Char {
   from: 'create' | 'keep' | 'delete';
+}
+
+export interface Token {
+  token: string;
+  location: [number, number];
 }
 
 export function parse(language: string, code: string): Parsed<Char> {
@@ -82,8 +111,8 @@ function recurse(
 
 const nextLineRegex = /^\/\/:[^\S\n]*next-line[^\S\n]+([^\n]+?)[^\S\n]*$/;
 const thisLineRegex = /^\/\/:[^\S\n]*this-line[^\S\n]+([^\n]+?)[^\S\n]*$/;
-const blockStartRegex = /^\/\/<[^\S\n]*([^\n]+?)[^\S\n]*$/;
-const blockEndRegex = /^\/\/>[^\S\n]*$/;
+const blockStartRegex = /^\/\/<<[^\S\n]*([^\n]+?)[^\S\n]*$/;
+const blockEndRegex = /^\/\/>>[^\S\n]*$/;
 const sectionStartRegex = /^\/\*<<[^\S\n]*([^\n]+?)[^\S\n]*\*\/$/;
 const sectionEndRegex = /^\/\*>>[^\S\n]*\*\/$/;
 const tagRegex = /^\/\*<[^\S\r\n]*(.*?)[^\S\r\n]*>\*\/$/;
@@ -104,15 +133,12 @@ function getSpecialType(span: string) {
   return [];
 }
 
-function* spans(
-  chars: Char[],
-): Generator<[string[], string, number], void, void> {
+function* spans(chars: Char[]): Generator<[Char[], number], void, void> {
   let i = 0;
   while (i < chars.length) {
     const char = chars[i];
     console.assert(char.token[0] === 0, `token was not beginning of span`);
-    const span = getSpan(chars, i);
-    yield [char.classList, span, i];
+    yield [chars.slice(i, i + char.token[1]), i];
     i += char.token[1];
   }
 }
@@ -136,7 +162,7 @@ function markTree(parsed: Parsed<Char>): Parsed<Char> {
     const char = chars[i];
 
     if (char.token[0] === 0 && sectionHold != null) {
-      sections.push(sectionHold);
+      sections.unshift(sectionHold);
       sectionHold = null;
     }
 
@@ -167,7 +193,7 @@ function markTree(parsed: Parsed<Char>): Parsed<Char> {
       } else if (sectionStartRegex.test(span)) {
         sectionHold = span.match(sectionStartRegex)?.[1] as string;
       } else if (sectionEndRegex.test(span)) {
-        sections.pop();
+        sections.shift();
       }
     }
   }
@@ -178,45 +204,19 @@ function markTree(parsed: Parsed<Char>): Parsed<Char> {
   };
 }
 
-function ensureParsed(input: Parsed<Char> | Parsable): Parsed<Char> {
+/**
+ * @internal
+ * @param input - parsed or parsable variable
+ * @returns parsed code
+ */
+export function ensureParsed(input: Parsed | Parsable): Parsed {
   if (Array.isArray(input)) {
     return parse(input[0], input[1]);
-  } else if ('code' in input) {
+  } else if (typeof input === 'object' && 'code' in input) {
     return parse(input.lang, input.code);
   } else {
     return input as Parsed<Char>;
   }
-}
-
-export function tokenColors(
-  code: Parsed<Char> | Parsable,
-): [string, [number, number], string?][] {
-  const input = ensureParsed(code).chars;
-  const result: [string, [number, number], string?][] = [];
-  let lastColor = Symbol();
-  let [ln, at] = [0, 0];
-  for (let i = 0; i < input.length; i++) {
-    const classList = input[i].classList;
-    console.assert(classList.length <= 1, `classList too long`);
-    const styles =
-      classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
-    console.assert((styles?.size ?? 0) <= 1, `more styles than just color`);
-    const color = styles?.get('color');
-    if (input[i].char === '\n') {
-      lastColor = Symbol();
-      ln++;
-      at = 0;
-    } else if (color === lastColor) {
-      last(result)[0] += input[i].char;
-      at++;
-    } else {
-      const char = input[i].char;
-      result.push(color ? [char, [ln, at], color] : [char, [ln, at]]);
-      at++;
-    }
-    lastColor = color;
-  }
-  return result;
 }
 
 let starryNight: {
@@ -255,45 +255,60 @@ function getSpan(tree: Char[], at: number) {
  */
 export function clean(code: Parsed<Char> | Parsable): Parsed<Char> {
   const parsed = ensureParsed(code);
-  const result: string[] = [];
-  const sections: string[][] = [];
+  const result: Char[] = [];
   let lineNumber = 0;
+  let finalNumber = 1;
   let lineSkip = false;
   const lines = [];
-  for (const [classList, span, i] of spans(parsed.chars)) {
-    if (span === '\n') lineNumber++;
+  for (const [span] of spans(parsed.chars)) {
+    if (span.length === 1 && span[0].char === '\n') lineNumber++;
     if (lineSkip) {
-      console.assert(span === '\n', `expected a new line`);
+      console.assert(
+        span.length === 1 && span[0].char === '\n',
+        `expected a new line`,
+      );
       lineSkip = false;
       continue;
-    } else if (span === '\n') {
-      lines.push(parsed.lines[lineNumber]);
+    } else if (span.length === 1 && span[0].char === '\n') {
+      lines.push({
+        ...parsed.lines[lineNumber],
+        number: finalNumber,
+      });
+      finalNumber++;
     }
-    console.assert(classList.length === 1, `multiple classes found`);
-    const specialTypes = getSpecialType(span);
-    if (classList[0] !== 'pl-c' || specialTypes.length === 0) {
-      result.push(span);
-      const charSections = new Array(span.length).fill(
-        parsed.chars[i].sections,
-      );
-      sections.push(...charSections);
+    console.assert(span[0].classList.length === 1, `multiple classes found`);
+    const specialTypes = getSpecialType(
+      span.reduce((text, { char }) => text + char, ''),
+    );
+    if (span[0].classList[0] !== 'pl-c' || specialTypes.length === 0) {
+      result.push(...span);
     } else if (specialTypes.includes('line')) {
       lineSkip = true;
     }
   }
-  lines.push(parsed.lines[lineNumber]);
-  const reparsed = parse(parsed.language, result.join(''));
+  lines.push({
+    ...parsed.lines[lineNumber],
+    number: finalNumber,
+  });
+  if (lineSkip) {
+    lines.pop();
+    console.assert(
+      result[result.length - 1].char === '\n',
+      `expected a new line`,
+    );
+    result.pop();
+  }
   return {
-    ...reparsed,
+    ...parsed,
+    chars: result,
     lines,
-    chars: reparsed.chars.map((char, i) => ({
-      ...char,
-      sections: sections[i],
-    })),
   };
 }
 
-function last<T>(arr: T[][]): T[] {
+/**
+ * @internal
+ */
+export function last<T>(arr: T[][]): T[] {
   if (arr.length === 0) arr.push([]);
   return arr[arr.length - 1];
 }
@@ -410,19 +425,10 @@ export function transition(
   };
   let [dln, dat] = [0, 0];
   let [cln, cat] = [0, 0];
-  let lastColor: symbol | string = Symbol();
+  let lastColor: symbol | undefined | string = Symbol();
   let lastFrom: symbol | string = Symbol();
   chars.forEach((char) => {
-    const classList = char.classList;
-    console.assert(classList.length <= 1, `classList too long`);
-    const styles =
-      classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
-    console.assert(
-      (styles?.size ?? 0) <= 1,
-      `more styles than just color`,
-      styles,
-    );
-    const color = styles?.get('color');
+    const color = getColor(char.classList);
     if (char.char === '\n') {
       if (char.from === 'keep' || char.from === 'create') {
         cln++;
