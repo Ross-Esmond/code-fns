@@ -1,10 +1,13 @@
 {
   "name": "code-fns",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A library for visualizing code.",
   "license": "MIT",
   "type": "module",
   "main": "./lib/index.js",
+  "files": [
+    "lib/"
+  ],
   "types": "./lib/index.d.ts",
   "repository": {
     "type": "git",
