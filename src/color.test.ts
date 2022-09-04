@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ready, clean } from './code';
-import { color, Undertone, tokenize } from './color';
+import { color, Undertone } from './color';
+import { tokenize } from './transition';
 
 describe('colorTokens', () => {
   it('should color tokens', async () => {
@@ -18,11 +19,16 @@ describe('colorTokens', () => {
         "tokens": [
           {
             "background": undefined,
+            "classList": [
+              "pl-c1",
+            ],
             "color": "#79c0ff",
             "location": [
               0,
               0,
             ],
+            "provinance": undefined,
+            "sections": [],
             "token": "true",
           },
         ],
@@ -49,10 +55,17 @@ describe('colorTokens', () => {
         "tokens": [
           {
             "background": "#011c39",
+            "classList": [
+              "pl-c1",
+            ],
             "color": "#79c0ff",
             "location": [
               0,
               0,
+            ],
+            "provinance": undefined,
+            "sections": [
+              "b",
             ],
             "token": "true",
           },
@@ -61,7 +74,7 @@ describe('colorTokens', () => {
     `);
   });
 
-  it.only('should highlight lines', async () => {
+  it('should highlight lines', async () => {
     await ready();
     expect(
       tokenize(
@@ -82,11 +95,16 @@ describe('colorTokens', () => {
         "tokens": [
           {
             "background": undefined,
+            "classList": [
+              "pl-c1",
+            ],
             "color": "#79c0ff",
             "location": [
               0,
               0,
             ],
+            "provinance": undefined,
+            "sections": [],
             "token": "true",
           },
         ],

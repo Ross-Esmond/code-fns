@@ -37,11 +37,9 @@ export interface Line {
 export interface Text {
   classList: string[];
   sections: string[];
-}
-
-export interface ColorCoded {
   color?: string;
   background?: string;
+  provinance?: 'create' | 'retain' | 'delete';
 }
 
 export interface Char extends Text {
@@ -49,16 +47,9 @@ export interface Char extends Text {
   token: [number, number];
 }
 
-export interface RepChar extends Char {
-  from: 'new' | 'old';
-}
-
-export interface FormChar extends Char {
-  from: 'create' | 'keep' | 'delete';
-}
-
-export interface Token {
+export interface Token extends Text {
   token: string;
+  prior?: [number, number];
   location: [number, number];
 }
 
@@ -115,7 +106,7 @@ const blockStartRegex = /^\/\/<<[^\S\n]*([^\n]+?)[^\S\n]*$/;
 const blockEndRegex = /^\/\/>>[^\S\n]*$/;
 const sectionStartRegex = /^\/\*<<[^\S\n]*([^\n]+?)[^\S\n]*\*\/$/;
 const sectionEndRegex = /^\/\*>>[^\S\n]*\*\/$/;
-const tagRegex = /^\/\*<[^\S\r\n]*(.*?)[^\S\r\n]*>\*\/$/;
+export const tagRegex = /^\/\*<[^\S\r\n]*(.*?)[^\S\r\n]*>\*\/$/;
 
 const specialTypes: [RegExp, string[]][] = [
   [nextLineRegex, ['nextLine', 'line']],
@@ -237,7 +228,7 @@ export function toString(code: Parsed<Char> | Parsable): string {
   return result.join('');
 }
 
-function getSpan(tree: Char[], at: number) {
+export function getSpan(tree: Char[], at: number) {
   const [back, length] = tree[at].token;
   const start = at - back;
   const end = start + length;
@@ -303,185 +294,4 @@ export function clean(code: Parsed<Char> | Parsable): Parsed<Char> {
     chars: result,
     lines,
   };
-}
-
-/**
- * @internal
- */
-export function last<T>(arr: T[][]): T[] {
-  if (arr.length === 0) arr.push([]);
-  return arr[arr.length - 1];
-}
-
-export function substitute(
-  code: Parsed<Char> | Parsable,
-  subs: Record<string, string>,
-): Parsed<RepChar> {
-  const parsed = ensureParsed(code);
-  const language = parsed.language;
-  const tree = parsed.chars;
-  const replacements: [number, number][] = [];
-  let final = '';
-  tree.forEach((char, at) => {
-    if (char.token[0] !== 0) return;
-    const span = getSpan(tree, at);
-    if (char.classList[0] === 'pl-c' && tagRegex.test(span)) {
-      const [, name] = span.match(tagRegex) as [string, string];
-      if (name in subs) {
-        const rep = subs[name];
-        final += rep;
-        if (rep !== '') replacements.push([at, rep.length]);
-      } else {
-        final += span;
-      }
-    } else {
-      final += span;
-    }
-  });
-  const reparsed = parse(language, final);
-  let [r, ri] = [0, 0];
-  let inReplacement = false;
-  return {
-    language,
-    lines: [],
-    chars: reparsed.chars.map((char: Char, at: number) => {
-      if (inReplacement) {
-        ri++;
-        if (ri === replacements[r][1]) {
-          inReplacement = false;
-          r++;
-        }
-      } else if (r < replacements.length) {
-        const [rat] = replacements[r];
-        if (rat === at) {
-          inReplacement = true;
-        }
-      }
-
-      return {
-        ...char,
-        from: inReplacement ? 'new' : 'old',
-      };
-    }),
-  };
-}
-
-export function transform(
-  code: Parsed<Char> | Parsable,
-  start: Record<string, string>,
-  final: Record<string, string>,
-): FormChar[] {
-  const tree = ensureParsed(code);
-  const before = substitute(tree, start);
-  const after = substitute(tree, final);
-  let [bat] = [0];
-  let [aat] = [0];
-  const chars: FormChar[] = [];
-  while (bat < before.chars.length || aat < after.chars.length) {
-    const bchar = before.chars[bat] ?? null;
-    const achar = after.chars[aat] ?? null;
-    if (bchar?.from === 'old' && achar?.from === 'old') {
-      chars.push({
-        ...achar,
-        from: 'keep',
-      });
-      bat++;
-      aat++;
-    } else if (bchar?.from === 'new') {
-      chars.push({
-        ...bchar,
-        from: 'delete',
-      });
-      bat++;
-    } else if (achar?.from === 'new') {
-      chars.push({
-        ...achar,
-        from: 'create',
-      });
-      aat++;
-    }
-  }
-
-  return chars;
-}
-
-export interface Transition {
-  delete: [string, [number, number], string?][];
-  create: [string, [number, number], string?][];
-  retain: [string, [number, number], [number, number], string?][];
-}
-
-export function transition(
-  code: Parsed<Char> | Parsable,
-  start: Record<string, string>,
-  final: Record<string, string>,
-): Transition {
-  const tree = ensureParsed(code);
-  const chars = transform(tree, start, final);
-  const result: Transition = {
-    delete: [],
-    create: [],
-    retain: [],
-  };
-  let [dln, dat] = [0, 0];
-  let [cln, cat] = [0, 0];
-  let lastColor: symbol | undefined | string = Symbol();
-  let lastFrom: symbol | string = Symbol();
-  chars.forEach((char) => {
-    const color = getColor(char.classList);
-    if (char.char === '\n') {
-      if (char.from === 'keep' || char.from === 'create') {
-        cln++;
-        cat = 0;
-      }
-      if (char.from === 'keep' || char.from === 'delete') {
-        dln++;
-        dat = 0;
-      }
-      lastColor = Symbol();
-      lastFrom = Symbol();
-    } else if (color === lastColor && char.from === lastFrom) {
-      if (char.from === 'delete') {
-        last(result.delete)[0] += char.char;
-        dat++;
-      } else if (char.from === 'create') {
-        last(result.create)[0] += char.char;
-        cat++;
-      } else if (char.from === 'keep') {
-        last(result.retain)[0] += char.char;
-        dat++;
-        cat++;
-      }
-      lastFrom = char.from;
-      lastColor = color;
-    } else {
-      if (char.from === 'delete') {
-        result.delete.push([
-          char.char,
-          [dln, dat],
-          ...((color ? [color] : []) as [string?]),
-        ]);
-        dat++;
-      } else if (char.from === 'create') {
-        result.create.push([
-          char.char,
-          [cln, cat],
-          ...((color ? [color] : []) as [string?]),
-        ]);
-        cat++;
-      } else if (char.from === 'keep') {
-        result.retain.push([
-          char.char,
-          [dln, dat],
-          [cln, cat],
-          ...((color ? [color] : []) as [string?]),
-        ]);
-        dat++;
-        cat++;
-      }
-      lastFrom = char.from;
-      lastColor = color;
-    }
-  });
-  return result;
 }

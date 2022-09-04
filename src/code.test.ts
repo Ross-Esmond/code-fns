@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parse, substitute, transition, ready, toString, clean } from './code';
+import { parse, ready, toString, clean } from './code';
 
 describe('code', () => {
   it('should stringify', async () => {
@@ -197,97 +197,6 @@ describe('code', () => {
   });
 });
 
-describe('utils', () => {
-  it('should replace tags', async () => {
-    await ready();
-    expect(toString(substitute(['tsx', '/*<t>*/'], { t: 'true' }))).toEqual(
-      toString(parse('tsx', 'true')),
-    );
-  });
-
-  it('should keep tags', async () => {
-    await ready();
-    expect(toString(substitute(['tsx', '/*<t>*/'], {}))).toEqual(
-      toString(parse('tsx', '/*<t>*/')),
-    );
-  });
-
-  it('should transition', async () => {
-    await ready();
-    expect(transition(['tsx', '/*<t>*/'], { t: 'true' }, { t: 'false' }))
-      .toMatchInlineSnapshot(`
-        {
-          "create": [
-            [
-              "false",
-              [
-                0,
-                0,
-              ],
-              "#79c0ff",
-            ],
-          ],
-          "delete": [
-            [
-              "true",
-              [
-                0,
-                0,
-              ],
-              "#79c0ff",
-            ],
-          ],
-          "retain": [],
-        }
-      `);
-  });
-
-  it('should retain nodes when substituting tag', async () => {
-    await ready();
-    const codez = `(/*<t>*/)`;
-    const transformation = transition(['tsx', codez], { t: '' }, { t: 't' });
-    expect(transformation).toMatchInlineSnapshot(`
-      {
-        "create": [
-          [
-            "t",
-            [
-              0,
-              1,
-            ],
-            "#c9d1d9",
-          ],
-        ],
-        "delete": [],
-        "retain": [
-          [
-            "(",
-            [
-              0,
-              0,
-            ],
-            [
-              0,
-              0,
-            ],
-          ],
-          [
-            ")",
-            [
-              0,
-              1,
-            ],
-            [
-              0,
-              2,
-            ],
-          ],
-        ],
-      }
-    `);
-  });
-});
-
 describe('clean', () => {
   it('should remove next-line tags', async () => {
     await ready();
@@ -318,48 +227,5 @@ describe('clean', () => {
         ],
       }
     `);
-  });
-});
-
-describe('docs', () => {
-  it('should print substitution', async () => {
-    await ready();
-
-    const code = `(/*< params >*/) => { }`;
-    const subbed = substitute(['tsx', code], { params: 'input: any' });
-    expect(toString(subbed)).toEqual('(input: any) => { }');
-  });
-
-  it('should move token', async () => {
-    await ready();
-    expect(transition(['tsx', '/*<t>*/true'], { t: '' }, { t: '    ' }))
-      .toMatchInlineSnapshot(`
-        {
-          "create": [
-            [
-              "    ",
-              [
-                0,
-                0,
-              ],
-            ],
-          ],
-          "delete": [],
-          "retain": [
-            [
-              "true",
-              [
-                0,
-                0,
-              ],
-              [
-                0,
-                4,
-              ],
-              "#79c0ff",
-            ],
-          ],
-        }
-      `);
   });
 });

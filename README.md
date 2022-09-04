@@ -33,28 +33,12 @@ await ready();
 Once initialized, you may highlight your code with
 
 ```tsx
-import { ready, tokenColors } from 'code-fns';
+import { ready, color } from 'code-fns';
 
 await ready();
 
-const tokens = tokenColors(['tsx', '() => true']);
+const code = color(['tsx', '() => true']);
 ```
-
-You will receive an array of tokens, which are themselves a tuple of a string, a
-location, and a color, when applicable. Colors are based on the GitHub dark
-theme, though we hope to add more themes in the future.
-
-```tsx
-// tokens
-[
-  ['() ', [0, 0]],
-  ['=>', [0, 3], '#ff7b72'],
-  [' ', [0, 5]],
-  ['true', [0, 6], '#79c0ff'],
-];
-```
-
-Locations are always `[line, column]`.
 
 ### Transitioning code (for animations)
 
@@ -95,9 +79,8 @@ const transform = transition(
 );
 ```
 
-The `transform` object will contain three token arrays: "create", "delete", and
-"retain". The `create` and `delete` arrays contains tuples with the token's
-text, location, and then color, when available.
+The `transform` object will contain an array of tokens, each of which with a
+provinance property of either "create", "delete", or "retain".
 
 ```tsx
 import { ready, transition, toString } from 'code-fns';
@@ -106,37 +89,3 @@ await ready();
 
 const transform = transition(['tsx', '/*<t>*/'], { t: 'true' }, { t: 'false' });
 ```
-
-The `transform` variable is then
-
-```tsx
-{
-  "create": [["false", [0, 0], "#79c0ff"]],
-  "delete": [["true", [0, 0], "#79c0ff"]],
-  "retain": [],
-}
-```
-
-The `retain` array contains tuples with the token's text, old position, new
-position, and color, when available.
-
-```tsx
-import { ready, transition, toString } from 'code-fns';
-
-await ready();
-
-const transform = transition(['tsx', '/*<t>*/true'], { t: '' }, { t: '    ' });
-```
-
-Here, the `transform` variable is
-
-```tsx
-{
-  "create": [["    ", [0, 0]]],
-  "delete": [],
-  "retain": [["true", [0, 0], [0, 4], "#79c0ff"]],
-}
-```
-
-By interpolating between the old and new position, you may animate notes to
-their new location.

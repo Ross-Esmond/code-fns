@@ -1,14 +1,4 @@
-import {
-  Parsed,
-  ColorCoded,
-  Char,
-  Parsable,
-  ensureParsed,
-  getColor,
-  Line,
-  Tokenized,
-  Token,
-} from './code';
+import { Parsed, Char, Parsable, ensureParsed, getColor } from './code';
 
 export enum Undertone {
   Grey = '#212121',
@@ -31,7 +21,7 @@ function getBackground(
 export function color(
   code: Parsed<Char> | Parsable,
   highlight: Record<string, string> = {},
-): Parsed<Char & ColorCoded, Line & ColorCoded> {
+): Parsed {
   const parsed = ensureParsed(code);
   const chars = parsed.chars.map((char) => ({
     ...char,
@@ -52,44 +42,5 @@ export function color(
     ...parsed,
     chars,
     lines,
-  };
-}
-
-export function tokenize<L extends Line>(
-  code: Parsed<Char & ColorCoded, L>,
-): Tokenized<Token & ColorCoded, L> {
-  const chars = code.chars;
-  let lastFgColor: string | undefined | symbol = Symbol();
-  let lastBgColor: string | undefined | symbol = Symbol();
-  let [ln, at] = [0, 0];
-  const tokens: (Token & ColorCoded)[] = [];
-  for (let i = 0; i < chars.length; i++) {
-    const char = chars[i];
-    const color = char.color;
-    const background = char.background;
-    if (char.char === '\n') {
-      lastFgColor = Symbol();
-      lastBgColor = Symbol();
-      ln++;
-      at = 0;
-    } else if (color === lastFgColor && background === lastBgColor) {
-      tokens[tokens.length - 1].token += char.char;
-      at++;
-    } else {
-      tokens.push({
-        token: char.char,
-        location: [ln, at],
-        color,
-        background,
-      });
-      at++;
-    }
-    lastFgColor = color;
-    lastBgColor = background;
-  }
-  return {
-    language: code.language,
-    lines: code.lines,
-    tokens,
   };
 }
