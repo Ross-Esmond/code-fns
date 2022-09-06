@@ -1,0 +1,14 @@
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "modules": "commonjs",
+        "targets": "maintained node versions"
+      }
+    ],
+    "@babel/preset-typescript"
+  ],
+  "ignore": ["src/**/*.test.ts", "src/**/*.d.ts"],
+  "sourceMaps": true
+}

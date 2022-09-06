@@ -18,6 +18,13 @@ Motion Canvas project, for visualizing code in videos and animations. Code-fns
 may also compute the transformation between different code blocks, so that you
 may animate between them.
 
+## Compatibility
+
+Supports all browsers and all [maintained node
+versions](https://github.com/nodejs/Release), though you will need to use your
+own transpiler, as the package files are left mostly alone. This ensures that
+you may configure your build as you wish.
+
 ## Usage
 
 You must initialize the project with `ready`.
