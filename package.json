@@ -22,7 +22,8 @@
     "highlighting"
   ],
   "scripts": {
-    "test": "vitest",
+    "test": "vitest run --silent",
+    "test:watch": "vitest --ui",
     "dev": "vite",
     "build": "rm -rf lib && npm run babel:esm && npm run babel:cjs && npm run types",
     "babel:esm": "babel src --config-file ./babel.esm.config.json --extensions '.ts' --out-dir 'lib/esm'",
@@ -30,8 +31,10 @@
     "types": "tsc",
     "preview": "vite preview",
     "prettier": "prettier --write .",
+    "prettier:check": "prettier --check .",
     "lint": "eslint ./src/",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "prepare": "husky install"
   },
   "devDependencies": {
     "@babel/cli": "^7.18.10",
@@ -46,6 +49,7 @@
     "css": "^3.0.0",
     "eslint": "^8.23.0",
     "eslint-plugin-tsdoc": "^0.2.16",
+    "husky": "^8.0.1",
     "prettier": "^2.7.1",
     "typescript": "^4.6.4",
     "vite": "^3.0.7",
