@@ -65,7 +65,9 @@ describe('colorTokens', () => {
             ],
             "provinance": undefined,
             "sections": [
-              "b",
+              [
+                "b",
+              ],
             ],
             "token": "true",
           },

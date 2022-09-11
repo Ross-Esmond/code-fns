@@ -34,9 +34,12 @@ export interface Line {
   number?: number;
 }
 
+export type section = [string, string?];
+
 export interface Text {
   classList: string[];
-  sections: string[];
+  sections: section[];
+  isSpecial?: boolean;
   color?: string;
   background?: string;
   provinance?: 'create' | 'retain' | 'delete';
@@ -149,24 +152,30 @@ function markTree(parsed: Parsed<Char>): Parsed<Char> {
   const sections = [];
   let sectionHold = null;
   const result: Char[] = [];
+  let isSpecial = false;
   for (let i = 0; i < chars.length; i++) {
     const char = chars[i];
+    const span = getSpan(chars, i);
 
-    if (char.token[0] === 0 && sectionHold != null) {
-      sections.unshift(sectionHold);
-      sectionHold = null;
+    if (char.token[0] === 0) {
+      if (sectionHold != null) {
+        sections.unshift(sectionHold);
+        sectionHold = null;
+      }
+      const specialTypes = getSpecialType(span);
+      isSpecial = specialTypes.length > 0;
     }
 
     result.push({
       ...char,
       sections: [...sections],
+      isSpecial,
     });
 
     if (char.token[0] !== 0) {
       continue;
     }
 
-    const span = getSpan(chars, i);
     if (char.char === '\n') {
       ln++;
       lines[ln].tags.push(...blocks);
@@ -182,7 +191,7 @@ function markTree(parsed: Parsed<Char>): Parsed<Char> {
       } else if (blockEndRegex.test(span)) {
         blocks.pop();
       } else if (sectionStartRegex.test(span)) {
-        sectionHold = span.match(sectionStartRegex)?.[1] as string;
+        sectionHold = [span.match(sectionStartRegex)?.[1]] as [string];
       } else if (sectionEndRegex.test(span)) {
         sections.shift();
       }
@@ -192,6 +201,70 @@ function markTree(parsed: Parsed<Char>): Parsed<Char> {
     ...parsed,
     lines,
     chars: result,
+  };
+}
+
+/**
+ * Sets up an alternative chunk of code for a particular tag or section of code.
+ * TODO
+ *
+ * @param code - the original code in which to add an alternative
+ * @param tag - the target tag to replace with code
+ * @param name - the name to identify this alternative code
+ * @param replacement - the code which will replace the tag
+ * @returns the new parsed code with the alternative built in
+ */
+export function addAlternative(
+  code: Parsed,
+  tag: string,
+  name: string,
+  replacement: string,
+): Parsed {
+  const { language, chars } = code;
+  const replacements: [number, number][] = [];
+  let final = '';
+  chars.forEach((char, at) => {
+    if (char.token[0] !== 0) return;
+    const span = getSpan(chars, at);
+    if (char.classList[0] === 'pl-c' && tagRegex.test(span)) {
+      const [, tagName] = span.match(tagRegex) as [string, string];
+      if (tagName === tag) {
+        final += replacement;
+        if (replacement !== '') replacements.push([at, replacement.length]);
+      } else {
+        final += span;
+      }
+    } else {
+      final += span;
+    }
+  });
+  const reparsed = parse(language, final);
+  let [r, ri] = [0, 0];
+  let inReplacement = false;
+  return {
+    language,
+    lines: [],
+    chars: reparsed.chars.map((char: Char, at: number) => {
+      if (inReplacement) {
+        ri++;
+        if (ri === replacements[r][1]) {
+          inReplacement = false;
+          r++;
+        }
+      } else if (r < replacements.length) {
+        const [rat] = replacements[r];
+        if (rat === at) {
+          inReplacement = true;
+        }
+      }
+
+      return {
+        ...char,
+        sections: inReplacement
+          ? [[tag, name], ...char.sections]
+          : char.sections,
+      };
+    }),
   };
 }
 
@@ -237,6 +310,37 @@ export function getSpan(tree: Char[], at: number) {
     result += tree[i].char;
   }
   return result;
+}
+
+/**
+ * Finalize code by removing special tags and selecting alternatives.
+ *
+ * @param parsed - the parsed code
+ * @param alts - a record of tags and alternatives to keep or select
+ * @returns new code without special tags and unused alternatives
+ */
+export function process(
+  parsed: Parsed,
+  alts: Record<string, boolean | string>,
+): Parsed {
+  const chars = parsed.chars.filter((char) => {
+    if (char.isSpecial) return false;
+    for (const section of char.sections) {
+      if (section.length === 1) {
+        if (section[0] in alts && alts[section[0]] !== true) return false;
+      } else if (section.length === 2) {
+        const [tag, alt] = section;
+        if (!(tag in alts) || alts[tag] !== alt) return false;
+      } else {
+        console.error('unfamiliar section');
+      }
+    }
+    return true;
+  });
+  return {
+    ...parsed,
+    chars,
+  };
 }
 
 /**

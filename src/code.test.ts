@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parse, ready, toString, clean } from './code';
+import { parse, process, ready, toString, clean, addAlternative } from './code';
 
 describe('code', () => {
   it('should stringify', async () => {
@@ -17,6 +17,7 @@ describe('code', () => {
             "classList": [
               "pl-c1",
             ],
+            "isSpecial": false,
             "sections": [],
             "token": [
               0,
@@ -28,6 +29,7 @@ describe('code', () => {
             "classList": [
               "pl-c1",
             ],
+            "isSpecial": false,
             "sections": [],
             "token": [
               1,
@@ -39,6 +41,7 @@ describe('code', () => {
             "classList": [
               "pl-c1",
             ],
+            "isSpecial": false,
             "sections": [],
             "token": [
               2,
@@ -50,6 +53,7 @@ describe('code', () => {
             "classList": [
               "pl-c1",
             ],
+            "isSpecial": false,
             "sections": [],
             "token": [
               3,
@@ -164,8 +168,11 @@ describe('code', () => {
           "classList": [
             "pl-smi",
           ],
+          "isSpecial": false,
           "sections": [
-            "s",
+            [
+              "s",
+            ],
           ],
           "token": [
             0,
@@ -181,19 +188,102 @@ describe('code', () => {
     const code = '/*<<u*/a/*<<v*/b/*>>*/c/*>>*/';
     expect(clean(parse('tsx', code)).chars.map(({ sections }) => sections))
       .toMatchInlineSnapshot(`
+        [
+          [
+            [
+              "u",
+            ],
+          ],
+          [
+            [
+              "v",
+            ],
+            [
+              "u",
+            ],
+          ],
+          [
+            [
+              "u",
+            ],
+          ],
+        ]
+      `);
+  });
+
+  it('should mark special tags', async () => {
+    await ready();
+    const code = '/*<t>*/code';
+    expect(parse('tsx', code).chars.map(({ isSpecial }) => isSpecial))
+      .toMatchInlineSnapshot(`
       [
-        [
-          "u",
-        ],
-        [
-          "v",
-          "u",
-        ],
-        [
-          "u",
-        ],
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
       ]
     `);
+  });
+
+  it('should mark alternatives', async () => {
+    await ready();
+    const code = '(/*<t>*/)';
+    const parsed = parse('tsx', code);
+    const alt = addAlternative(parsed, 't', 'b', '5');
+    expect(alt.chars.map(({ sections }) => sections)).toMatchInlineSnapshot(`
+      [
+        [],
+        [
+          [
+            "t",
+            "b",
+          ],
+        ],
+        [],
+      ]
+    `);
+  });
+
+  it('should remove special characters', async () => {
+    await ready();
+    const code = '/*<t>*/5';
+    const parsed = parse('tsx', code);
+    const alt = addAlternative(parsed, 't', 'b', '-');
+    const processed = process(alt, {});
+    expect(processed.chars).toMatchInlineSnapshot(`
+      [
+        {
+          "char": "5",
+          "classList": [
+            "pl-c1",
+          ],
+          "isSpecial": false,
+          "sections": [],
+          "token": [
+            0,
+            1,
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('should replace tags', async () => {
+    await ready();
+    const code = '(/*<t>*/)';
+    const parsed = parse('tsx', code);
+    const alt = addAlternative(parsed, 't', 'b', '1');
+    const processed = process(alt, { t: 'b' });
+    expect(processed.chars.reduce((str, { char }) => str + char, '')).toEqual(
+      '(1)',
+    );
   });
 });
 
@@ -209,6 +299,7 @@ describe('clean', () => {
             "classList": [
               "pl-smi",
             ],
+            "isSpecial": false,
             "sections": [],
             "token": [
               0,
