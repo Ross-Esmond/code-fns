@@ -285,6 +285,36 @@ describe('code', () => {
       '(1)',
     );
   });
+
+  it('should allow for hiding sections', async () => {
+    await ready();
+    const code = '/*<<t*/-/*>>*/1';
+    const parsed = parse('tsx', code);
+    const processed = process(parsed, { t: false });
+    expect(processed.chars.reduce((str, { char }) => str + char, '')).toEqual(
+      '1',
+    );
+  });
+
+  it('should allow for keeping sections', async () => {
+    await ready();
+    const code = '/*<<t*/-/*>>*/1';
+    const parsed = parse('tsx', code);
+    const processed = process(parsed, { t: true });
+    expect(processed.chars.reduce((str, { char }) => str + char, '')).toEqual(
+      '-1',
+    );
+  });
+
+  it('should keep sections by default', async () => {
+    await ready();
+    const code = '/*<<t*/-/*>>*/1';
+    const parsed = parse('tsx', code);
+    const processed = process(parsed, {});
+    expect(processed.chars.reduce((str, { char }) => str + char, '')).toEqual(
+      '-1',
+    );
+  });
 });
 
 describe('clean', () => {
