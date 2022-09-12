@@ -17,21 +17,14 @@ export function getColor(classList: string[]): string | undefined {
 
 export type Parsable = [string, string] | { lang: string; code: string };
 
-export interface Parsed<T extends Char = Char, L extends Line = Line> {
+export interface Parsed<T extends Char = Char> {
   language: string;
-  lines: L[];
   chars: T[];
 }
 
-export interface Tokenized<T extends Token = Token, L extends Line = Line> {
+export interface Tokenized<T extends Token = Token> {
   language: string;
-  lines: L[];
   tokens: T[];
-}
-
-export interface Line {
-  tags: string[];
-  number?: number;
 }
 
 export type section = [string, string?];
@@ -68,7 +61,6 @@ export function parse(language: string, code: string): Parsed<Char> {
   const converted = recurse(parsed);
   return markTree({
     language,
-    lines: [],
     chars: converted,
   });
 }
@@ -113,7 +105,7 @@ export const tagRegex = /^\/\*<[^\S\r\n]*(.*?)[^\S\r\n]*>\*\/$/;
 
 const specialTypes: [RegExp, string[]][] = [
   [nextLineRegex, ['nextLine', 'line']],
-  [thisLineRegex, ['thisLine', 'line']],
+  [thisLineRegex, ['thisLine']],
   [blockStartRegex, ['blockStart', 'line']],
   [blockEndRegex, ['blockEnd', 'line']],
   [sectionStartRegex, ['sectionStart', 'span']],
@@ -127,49 +119,30 @@ function getSpecialType(span: string) {
   return [];
 }
 
-function* spans(chars: Char[]): Generator<[Char[], number], void, void> {
-  let i = 0;
-  while (i < chars.length) {
-    const char = chars[i];
-    console.assert(char.token[0] === 0, `token was not beginning of span`);
-    yield [chars.slice(i, i + char.token[1]), i];
-    i += char.token[1];
-  }
-}
-
 function markTree(parsed: Parsed<Char>): Parsed<Char> {
   const chars = parsed.chars;
-  const lineCount =
-    1 +
-    chars.reduce((prior, { char }) => {
-      return prior + (char === '\n' ? 1 : 0);
-    }, 0);
-  const lines: { tags: string[] }[] = new Array(lineCount)
-    .fill(1)
-    .map(() => ({ tags: [] }));
-  let ln = 0;
-  const blocks = [];
   const sections = [];
-  let sectionHold = null;
   const result: Char[] = [];
   let isSpecial = false;
+  let nextLineSection = null;
+  let thisLineSections: section[] = [];
+  let lineComment = false;
   for (let i = 0; i < chars.length; i++) {
     const char = chars[i];
     const span = getSpan(chars, i);
 
     if (char.token[0] === 0) {
-      if (sectionHold != null) {
-        sections.unshift(sectionHold);
-        sectionHold = null;
-      }
       const specialTypes = getSpecialType(span);
       isSpecial = specialTypes.length > 0;
+      if (specialTypes.includes('line')) {
+        lineComment = true;
+      }
     }
 
     result.push({
       ...char,
-      sections: [...sections],
-      isSpecial,
+      sections: [...sections, ...thisLineSections],
+      isSpecial: isSpecial || lineComment,
     });
 
     if (char.token[0] !== 0) {
@@ -177,29 +150,30 @@ function markTree(parsed: Parsed<Char>): Parsed<Char> {
     }
 
     if (char.char === '\n') {
-      ln++;
-      lines[ln].tags.push(...blocks);
+      thisLineSections = nextLineSection ? [[nextLineSection]] : [];
+      nextLineSection = null;
+      lineComment = false;
     } else if (char.classList.length === 1 && char.classList[0] === 'pl-c') {
       if (nextLineRegex.test(span)) {
-        const name = span.match(nextLineRegex)?.[1] as string;
-        lines[ln + 1].tags.push(name);
+        nextLineSection = span.match(nextLineRegex)?.[1] as string;
       } else if (thisLineRegex.test(span)) {
         const name = span.match(thisLineRegex)?.[1] as string;
-        lines[ln].tags.push(name);
+        thisLineSections.push([name]);
+        for (let j = i - 1; 0 <= j; j--) {
+          if (result[j].char === '\n') break;
+          result[j].sections.push([name]);
+        }
       } else if (blockStartRegex.test(span)) {
-        blocks.push(span.match(blockStartRegex)?.[1] as string);
-      } else if (blockEndRegex.test(span)) {
-        blocks.pop();
+        sections.unshift([span.match(blockStartRegex)?.[1]] as [string]);
       } else if (sectionStartRegex.test(span)) {
-        sectionHold = [span.match(sectionStartRegex)?.[1]] as [string];
-      } else if (sectionEndRegex.test(span)) {
+        sections.unshift([span.match(sectionStartRegex)?.[1]] as [string]);
+      } else if (sectionEndRegex.test(span) || blockEndRegex.test(span)) {
         sections.shift();
       }
     }
   }
   return {
     ...parsed,
-    lines,
     chars: result,
   };
 }
@@ -243,7 +217,6 @@ export function addAlternative(
   let inReplacement = false;
   return {
     language,
-    lines: [],
     chars: reparsed.chars.map((char: Char, at: number) => {
       if (inReplacement) {
         ri++;
@@ -321,7 +294,7 @@ export function getSpan(tree: Char[], at: number) {
  */
 export function process(
   parsed: Parsed,
-  alts: Record<string, boolean | string>,
+  alts: Record<string, boolean | string> = {},
 ): Parsed {
   const chars = parsed.chars.filter((char) => {
     if (char.isSpecial) return false;
@@ -340,62 +313,5 @@ export function process(
   return {
     ...parsed,
     chars,
-  };
-}
-
-/**
- * Removes all code-fns tags.
- *
- * @param code - the parsed or parsable code to clean
- */
-export function clean(code: Parsed<Char> | Parsable): Parsed<Char> {
-  const parsed = ensureParsed(code);
-  const result: Char[] = [];
-  let lineNumber = 0;
-  let finalNumber = 1;
-  let lineSkip = false;
-  const lines = [];
-  for (const [span] of spans(parsed.chars)) {
-    if (span.length === 1 && span[0].char === '\n') lineNumber++;
-    if (lineSkip) {
-      console.assert(
-        span.length === 1 && span[0].char === '\n',
-        `expected a new line`,
-      );
-      lineSkip = false;
-      continue;
-    } else if (span.length === 1 && span[0].char === '\n') {
-      lines.push({
-        ...parsed.lines[lineNumber],
-        number: finalNumber,
-      });
-      finalNumber++;
-    }
-    console.assert(span[0].classList.length === 1, `multiple classes found`);
-    const specialTypes = getSpecialType(
-      span.reduce((text, { char }) => text + char, ''),
-    );
-    if (span[0].classList[0] !== 'pl-c' || specialTypes.length === 0) {
-      result.push(...span);
-    } else if (specialTypes.includes('line')) {
-      lineSkip = true;
-    }
-  }
-  lines.push({
-    ...parsed.lines[lineNumber],
-    number: finalNumber,
-  });
-  if (lineSkip) {
-    lines.pop();
-    console.assert(
-      result[result.length - 1].char === '\n',
-      `expected a new line`,
-    );
-    result.pop();
-  }
-  return {
-    ...parsed,
-    chars: result,
-    lines,
   };
 }

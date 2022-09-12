@@ -23,13 +23,6 @@ describe('utils', () => {
       .toMatchInlineSnapshot(`
         {
           "language": "tsx",
-          "lines": [
-            {
-              "background": undefined,
-              "number": 1,
-              "tags": [],
-            },
-          ],
           "tokens": [
             {
               "background": undefined,
@@ -71,13 +64,6 @@ describe('utils', () => {
     expect(transformation).toMatchInlineSnapshot(`
       {
         "language": "tsx",
-        "lines": [
-          {
-            "background": undefined,
-            "number": 1,
-            "tags": [],
-          },
-        ],
         "tokens": [
           {
             "background": undefined,
@@ -146,13 +132,6 @@ describe('docs', () => {
       .toMatchInlineSnapshot(`
         {
           "language": "tsx",
-          "lines": [
-            {
-              "background": undefined,
-              "number": 1,
-              "tags": [],
-            },
-          ],
           "tokens": [
             {
               "background": undefined,

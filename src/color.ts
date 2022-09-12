@@ -14,7 +14,7 @@ function getBackground(
   char: Char,
   highlight: Record<string, string>,
 ): string | undefined {
-  const relevantSection = char.sections.find((s) => s in highlight);
+  const [relevantSection] = char.sections.find(([s]) => s in highlight) ?? [];
   return relevantSection !== undefined ? highlight[relevantSection] : undefined;
 }
 
@@ -28,19 +28,8 @@ export function color(
     color: getColor(char.classList),
     background: getBackground(char, highlight),
   }));
-  const lines = parsed.lines.map((line, i) => {
-    const { tags } = line;
-    const relevantTag = tags.find((tag) => tag in highlight);
-    const background = relevantTag ? highlight[relevantTag] : undefined;
-    return {
-      ...line,
-      number: i + 1,
-      background,
-    };
-  });
   return {
     ...parsed,
     chars,
-    lines,
   };
 }

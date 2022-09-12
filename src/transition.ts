@@ -41,7 +41,6 @@ export function substitute(
   let inReplacement = false;
   return {
     language,
-    lines: [],
     chars: reparsed.chars.map((char: Char, at: number) => {
       if (inReplacement) {
         ri++;
@@ -153,7 +152,6 @@ export function transition(
     }
     throw new Error('no path found');
   });
-  // TODO correct lines
   return {
     ...tokenized,
     tokens,
@@ -214,7 +212,6 @@ export function tokenize(code: Parsed): Tokenized {
   }
   return {
     language: code.language,
-    lines: code.lines,
     tokens,
   };
 }

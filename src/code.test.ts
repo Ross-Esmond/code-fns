@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parse, process, ready, toString, clean, addAlternative } from './code';
+import { parse, process, ready, toString, addAlternative } from './code';
 
 describe('code', () => {
   it('should stringify', async () => {
@@ -62,98 +62,56 @@ describe('code', () => {
           },
         ],
         "language": "tsx",
-        "lines": [
-          {
-            "tags": [],
-          },
-        ],
       }
-    `);
-  });
-
-  it('should mark next lines', async () => {
-    await ready();
-    const code = '//: next-line tag\nl;';
-    expect(parse('tsx', code).lines).toMatchInlineSnapshot(`
-      [
-        {
-          "tags": [],
-        },
-        {
-          "tags": [
-            "tag",
-          ],
-        },
-      ]
-    `);
-  });
-
-  it('should mark this lines', async () => {
-    await ready();
-    const code = 'l; //: this-line tag';
-    expect(parse('tsx', code).lines).toMatchInlineSnapshot(`
-      [
-        {
-          "tags": [
-            "tag",
-          ],
-        },
-      ]
     `);
   });
 
   it('should mark tag blocks', async () => {
     await ready();
-    const code = 'a //<< tag\nb\n//>>';
-    expect(parse('tsx', code).lines).toMatchInlineSnapshot(`
+    const code = '//<< tag\na\n//>>';
+    const parsed = parse('tsx', code);
+    const processed = process(parsed);
+    expect(processed.chars.map(({ sections }) => sections))
+      .toMatchInlineSnapshot(`
       [
-        {
-          "tags": [],
-        },
-        {
-          "tags": [
+        [
+          [
             "tag",
           ],
-        },
-        {
-          "tags": [
+        ],
+        [
+          [
             "tag",
           ],
-        },
+        ],
       ]
     `);
   });
 
   it('should mark nested tag blocks', async () => {
     await ready();
-    const code = '//<<a\n//<<b\nl\n//>>\n//>>';
-    expect(parse('tsx', code).lines).toMatchInlineSnapshot(`
+    const code = '//<< a\n//<< b\nc\n//>>\n//>>';
+    const parsed = parse('tsx', code);
+    const processed = process(parsed);
+    expect(processed.chars.map(({ sections }) => sections))
+      .toMatchInlineSnapshot(`
       [
-        {
-          "tags": [],
-        },
-        {
-          "tags": [
-            "a",
-          ],
-        },
-        {
-          "tags": [
-            "a",
+        [
+          [
             "b",
           ],
-        },
-        {
-          "tags": [
+          [
             "a",
+          ],
+        ],
+        [
+          [
             "b",
           ],
-        },
-        {
-          "tags": [
+          [
             "a",
           ],
-        },
+        ],
       ]
     `);
   });
@@ -161,7 +119,7 @@ describe('code', () => {
   it('should mark section characters', async () => {
     await ready();
     const code = '/*<<s*/t/*>>*/';
-    expect(clean(parse('tsx', code)).chars).toMatchInlineSnapshot(`
+    expect(process(parse('tsx', code), {}).chars).toMatchInlineSnapshot(`
       [
         {
           "char": "t",
@@ -186,7 +144,7 @@ describe('code', () => {
   it('should mark nested section characters', async () => {
     await ready();
     const code = '/*<<u*/a/*<<v*/b/*>>*/c/*>>*/';
-    expect(clean(parse('tsx', code)).chars.map(({ sections }) => sections))
+    expect(process(parse('tsx', code)).chars.map(({ sections }) => sections))
       .toMatchInlineSnapshot(`
         [
           [
@@ -315,38 +273,48 @@ describe('code', () => {
       '-1',
     );
   });
-});
 
-describe('clean', () => {
-  it('should remove next-line tags', async () => {
+  it('should mark next line', async () => {
     await ready();
-    const code = `//: next-line t\nl`;
-    expect(clean(parse('tsx', code))).toMatchInlineSnapshot(`
-      {
-        "chars": [
-          {
-            "char": "l",
-            "classList": [
-              "pl-smi",
-            ],
-            "isSpecial": false,
-            "sections": [],
-            "token": [
-              0,
-              1,
-            ],
-          },
+    const code = '//: next-line tag\na\n';
+    const parsed = parse('tsx', code);
+    const processed = process(parsed, {});
+    expect(processed.chars.map(({ sections }) => sections))
+      .toMatchInlineSnapshot(`
+      [
+        [
+          [
+            "tag",
+          ],
         ],
-        "language": "tsx",
-        "lines": [
-          {
-            "number": 1,
-            "tags": [
-              "t",
-            ],
-          },
+        [
+          [
+            "tag",
+          ],
         ],
-      }
+      ]
+    `);
+  });
+
+  it('should mark this line', async () => {
+    await ready();
+    const code = 'a//: this-line tag\n';
+    const parsed = parse('tsx', code);
+    const processed = process(parsed, {});
+    expect(processed.chars.map(({ sections }) => sections))
+      .toMatchInlineSnapshot(`
+      [
+        [
+          [
+            "tag",
+          ],
+        ],
+        [
+          [
+            "tag",
+          ],
+        ],
+      ]
     `);
   });
 });
