@@ -5,19 +5,17 @@ import {
   Parsed,
   Parsable,
   Token,
-  ensureParsed,
   Char,
   Tokenized,
 } from './code';
 import { color } from './color';
 
-export function substitute(
-  code: Parsed<Char> | Parsable,
+export async function substitute(
+  code: Parsed,
   subs: Record<string, string>,
-): Parsed<Char> {
-  const parsed = color(ensureParsed(code));
-  const language = parsed.language;
-  const tree = parsed.chars;
+): Promise<Parsed> {
+  const language = code.language;
+  const tree = code.chars;
   const replacements: [number, number][] = [];
   let final = '';
   tree.forEach((char, at) => {
@@ -36,7 +34,7 @@ export function substitute(
       final += span;
     }
   });
-  const reparsed = color(parse(language, final));
+  const reparsed = color(await parse(language, final));
   let [r, ri] = [0, 0];
   let inReplacement = false;
   return {
@@ -63,14 +61,13 @@ export function substitute(
   };
 }
 
-export function transform(
-  code: Parsed | Parsable,
+export async function transform(
+  code: Parsed,
   start: Record<string, string>,
   final: Record<string, string>,
-): Parsed {
-  const parsed = ensureParsed(code);
-  const before = substitute(parsed, start);
-  const after = substitute(parsed, final);
+): Promise<Parsed> {
+  const before = await substitute(code, start);
+  const after = await substitute(code, final);
   let [bat] = [0];
   let [aat] = [0];
   const chars: Char[] = [];
@@ -100,19 +97,18 @@ export function transform(
   }
 
   return {
-    ...parsed,
+    ...code,
     chars,
   };
 }
 
-export function transition(
-  code: Parsed<Char> | Parsable,
+export async function transition(
+  tree: Parsed,
   start: Record<string, string>,
   final: Record<string, string>,
-): Tokenized {
-  const tree = ensureParsed(code);
+): Promise<Tokenized> {
   const colored = color(tree);
-  const transformed = transform(colored, start, final);
+  const transformed = await transform(colored, start, final);
   const tokenized = tokenize(transformed);
   let [dln, dat] = [0, 0];
   let [cln, cat] = [0, 0];

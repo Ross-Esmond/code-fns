@@ -1,26 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { ready, parse, toString } from './code';
+import { parse, toString } from './code';
 import { substitute, transition } from './transition';
 
 describe('utils', () => {
   it('should replace tags', async () => {
-    await ready();
-    expect(toString(substitute(['tsx', '/*<t>*/'], { t: 'true' }))).toEqual(
-      toString(parse('tsx', 'true')),
-    );
+    expect(
+      toString(await substitute(await parse('tsx', '/*<t>*/'), { t: 'true' })),
+    ).toEqual(toString(await parse('tsx', 'true')));
   });
 
   it('should keep tags', async () => {
-    await ready();
-    expect(toString(substitute(['tsx', '/*<t>*/'], {}))).toEqual(
-      toString(parse('tsx', '/*<t>*/')),
-    );
+    expect(
+      toString(await substitute(await parse('tsx', '/*<t>*/'), {})),
+    ).toEqual(toString(await parse('tsx', '/*<t>*/')));
   });
 
   it('should transition', async () => {
-    await ready();
-    expect(transition(['tsx', '/*<t>*/'], { t: 'true' }, { t: 'false' }))
-      .toMatchInlineSnapshot(`
+    expect(
+      await transition(
+        await parse('tsx', '/*<t>*/'),
+        { t: 'true' },
+        { t: 'false' },
+      ),
+    ).toMatchInlineSnapshot(`
         {
           "language": "tsx",
           "tokens": [
@@ -58,9 +60,12 @@ describe('utils', () => {
   });
 
   it('should retain nodes when substituting tag', async () => {
-    await ready();
     const codez = `(/*<t>*/)`;
-    const transformation = transition(['tsx', codez], { t: '' }, { t: 't' });
+    const transformation = await transition(
+      await parse('tsx', codez),
+      { t: '' },
+      { t: 't' },
+    );
     expect(transformation).toMatchInlineSnapshot(`
       {
         "language": "tsx",
@@ -119,17 +124,21 @@ describe('utils', () => {
 
 describe('docs', () => {
   it('should print substitution', async () => {
-    await ready();
-
     const code = `(/*< params >*/) => { }`;
-    const subbed = substitute(['tsx', code], { params: 'input: any' });
+    const subbed = await substitute(await parse('tsx', code), {
+      params: 'input: any',
+    });
     expect(toString(subbed)).toEqual('(input: any) => { }');
   });
 
   it('should move token', async () => {
-    await ready();
-    expect(transition(['tsx', '/*<t>*/true'], { t: '' }, { t: '    ' }))
-      .toMatchInlineSnapshot(`
+    expect(
+      await transition(
+        await parse('tsx', '/*<t>*/true'),
+        { t: '' },
+        { t: '    ' },
+      ),
+    ).toMatchInlineSnapshot(`
         {
           "language": "tsx",
           "tokens": [

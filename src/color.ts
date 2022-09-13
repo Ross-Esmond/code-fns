@@ -1,4 +1,4 @@
-import { Parsed, Char } from './code';
+import type { Parsed, Char } from './code';
 import style from './dark-style.json';
 
 const rules = new Map(

@@ -35,6 +35,8 @@ export interface Token extends Text {
   location: [number, number];
 }
 
+const starryNight = createStarryNight(all);
+
 /**
  * Parse some code into a collection of styled characters given a language.
  * The parsed result may then be used in other functions to draw or transform the code.
@@ -45,22 +47,18 @@ export interface Token extends Text {
  *
  * @example
  * ```tsx
- * import {ready, parse} from 'code-fns';
- * // you must await ready before calling parse
- * await ready();
- * const parsed = parse('tsx', '() => true');
+ * import {parse} from 'code-fns';
+ * const parsed = await parse('tsx', '() => true');
  * // perform further actions with `parsed`
  * ```
  */
-export function parse(language: string, code: string): Parsed<Char> {
-  if (starryNight == null) {
-    throw new Error('you must await ready() to initialize package');
-  }
-  const scope = starryNight.flagToScope(language);
+export async function parse(language: string, code: string): Promise<Parsed> {
+  const sn = await starryNight;
+  const scope = sn.flagToScope(language);
   if (typeof scope !== 'string') {
     throw new Error(`language ${language} not found`);
   }
-  const parsed = starryNight.highlight(code, scope);
+  const parsed = sn.highlight(code, scope);
   const converted = recurse(parsed);
   return markTree({
     language,
@@ -185,7 +183,6 @@ function markTree(parsed: Parsed<Char>): Parsed<Char> {
 /**
  * Sets up an alternative chunk of code for a particular tag or section of code.
  * You must run `addAlternative` on the result of a `parse` but before you `process` the code.
- * `addAlternative` requires that you await `ready`.
  *
  * @param code - the original code in which to add an alternative
  * @param tag - the target tag to replace with code
@@ -196,21 +193,20 @@ function markTree(parsed: Parsed<Char>): Parsed<Char> {
  * @example
  * Example using a section block: `/*<<tagname*​/ code /*>>*​/`.
  * ```tsx
- * import {ready, parse, addAlternative, process, toString} from 'code-fns';
- * await ready();
- * const parsed = parse('tsx', '() => /*<<val*​/null/*>>*​/');
- * const alt = addAlternative(parsed, 'val', 'always-true', 'true');
+ * import {parse, addAlternative, process, toString} from 'code-fns';
+ * const parsed = await parse('tsx', '() => /*<<val*​/null/*>>*​/');
+ * const alt = await addAlternative(parsed, 'val', 'always-true', 'true');
  * const processed = process(alt, {val: 'always-true'});
  * console.log(toString(processed));
  * // `() => true`
  * ```
  */
-export function addAlternative(
+export async function addAlternative(
   code: Parsed,
   tag: string,
   name: string,
   replacement: string,
-): Parsed {
+): Promise<Parsed> {
   const { language, chars } = code;
   const replacements: [number, number][] = [];
   let final = '';
@@ -229,7 +225,7 @@ export function addAlternative(
       final += span;
     }
   });
-  const reparsed = parse(language, final);
+  const reparsed = await parse(language, final);
   let [r, ri] = [0, 0];
   let inReplacement = false;
   return {
@@ -259,45 +255,6 @@ export function addAlternative(
 }
 
 /**
- * @internal
- * @param input - parsed or parsable variable
- * @returns parsed code
- */
-export function ensureParsed(input: Parsed | Parsable): Parsed {
-  if (Array.isArray(input)) {
-    return parse(input[0], input[1]);
-  } else if (typeof input === 'object' && 'code' in input) {
-    return parse(input.lang, input.code);
-  } else {
-    return input as Parsed<Char>;
-  }
-}
-
-let starryNight: {
-  flagToScope: (s: string) => string | undefined;
-  highlight: (c: string, s: string) => Root;
-} | null = null;
-const starryNightPromise = createStarryNight(all);
-starryNightPromise.then((sn) => (starryNight = sn));
-
-/**
- * Initialize the library for parsing code.
- * Must be called before `parse` or `addAlternative`.
- *
- * @returns a promise which completes when code-fns is ready to parse code
- *
- * @example
- * ```tsx
- * import {ready, parse} from 'code-fns';
- * await ready();
- * const parsed = parse('ts', '() => true');
- * ```
- */
-export function ready() {
-  return starryNightPromise;
-}
-
-/**
  * Converts parsed or processed code to a string.
  *
  * @param code - the result of parse or process
@@ -306,32 +263,29 @@ export function ready() {
  * @example
  * Using `toString` right after parsing returns the original code.
  * ```tsx
- * import {ready, parse, toString} from 'code-fns';
- * await ready();
- * const parsed = parse('ts', '() => true');
+ * import {parse, toString} from 'code-fns';
+ * const parsed = await parse('ts', '() => true');
  * console.log(toString(parsed));
  * // `() => true`
  * ```
  * @example
  * You may use `addAlternative` and `process` to alter the code.
  * ```tsx
- * import {ready, parse, addAlternative, process, toString} from 'code-fns';
- * await ready();
- * const parsed = parse('ts', '() => /*<<result*​/null/*>>*​/');
+ * import {parse, addAlternative, process, toString} from 'code-fns';
+ * const parsed = await parse('ts', '() => /*<<result*​/null/*>>*​/');
  * console.log(toString(parsed));
  * // `() => /*<<result*​/null/*>>*​/`
- * const withTrue = addAlternative(parsed, 'result', 'always-true', 'true');
- * const withBoth = addAlternative(withTrue, 'result', 'always-false', 'false');
+ * const withTrue = await addAlternative(parsed, 'result', 'always-true', 'true');
+ * const withBoth = await addAlternative(withTrue, 'result', 'always-false', 'false');
  * console.log(toString(process(withBoth, {result: 'always-true'})));
  * // `() => true`
  * console.log(toString(process(withBoth, {result: 'always-false'})));
  * // `() => false`
  * ```
  */
-export function toString(code: Parsed<Char> | Parsable): string {
-  const parsed = ensureParsed(code);
+export function toString(code: Parsed): string {
   const result: string[] = [];
-  parsed.chars.forEach(({ char }) => result.push(char));
+  code.chars.forEach(({ char }) => result.push(char));
   return result.join('');
 }
 
@@ -352,7 +306,6 @@ export function getSpan(tree: Char[], at: number) {
 /**
  * Finalize code by removing special tags and selecting alternatives.
  * `process` runs on the result of `parse`.
- * You do not need to call `ready` for `process` to work.
  * Once code is run through `parse` it may be processed at any time.
  *
  * @param parsed - the parsed code
@@ -362,9 +315,8 @@ export function getSpan(tree: Char[], at: number) {
  * @example
  * Using `process` to remove special tags.
  * ```tsx
- * import {ready, parse, process, toString} from 'code-fns';
- * await ready();
- * const parsed = parse('tsx', (/*<param>*​/) => true);
+ * import {parse, process, toString} from 'code-fns';
+ * const parsed = await parse('tsx', (/*<param>*​/) => true);
  * const processed = process(parsed);
  * // by default, process removes tags
  * console.log(toString(processed));
@@ -373,9 +325,8 @@ export function getSpan(tree: Char[], at: number) {
  * @example
  * Using `process` to replace special tags.
  * ```tsx
- * import {ready, parse, process, toString} from 'code-fns';
- * await ready();
- * const parsed = parse('tsx', (/*<param>*​/) => true);
+ * import {parse, process, toString} from 'code-fns';
+ * const parsed = await parse('tsx', (/*<param>*​/) => true);
  * const processed = process(parsed, {param: 'arg: any'});
  * // by default, process removes tags
  * console.log(toString(processed));

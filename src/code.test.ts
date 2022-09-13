@@ -1,15 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { parse, process, ready, toString, addAlternative } from './code';
+import { parse, process, toString, addAlternative } from './code';
 
 describe('code', () => {
   it('should stringify', async () => {
-    await ready();
-    expect(toString(parse('tsx', 'true'))).toEqual('true');
+    expect(toString(await parse('tsx', 'true'))).toEqual('true');
   });
 
   it('should parse', async () => {
-    await ready();
-    expect(parse('tsx', 'true')).toMatchInlineSnapshot(`
+    expect(await parse('tsx', 'true')).toMatchInlineSnapshot(`
       {
         "chars": [
           {
@@ -67,9 +65,8 @@ describe('code', () => {
   });
 
   it('should mark tag blocks', async () => {
-    await ready();
     const code = '//<< tag\na\n//>>';
-    const parsed = parse('tsx', code);
+    const parsed = await parse('tsx', code);
     const processed = process(parsed);
     expect(processed.chars.map(({ sections }) => sections))
       .toMatchInlineSnapshot(`
@@ -89,9 +86,8 @@ describe('code', () => {
   });
 
   it('should mark nested tag blocks', async () => {
-    await ready();
     const code = '//<< a\n//<< b\nc\n//>>\n//>>';
-    const parsed = parse('tsx', code);
+    const parsed = await parse('tsx', code);
     const processed = process(parsed);
     expect(processed.chars.map(({ sections }) => sections))
       .toMatchInlineSnapshot(`
@@ -117,9 +113,8 @@ describe('code', () => {
   });
 
   it('should mark section characters', async () => {
-    await ready();
     const code = '/*<<s*/t/*>>*/';
-    expect(process(parse('tsx', code), {}).chars).toMatchInlineSnapshot(`
+    expect(process(await parse('tsx', code), {}).chars).toMatchInlineSnapshot(`
       [
         {
           "char": "t",
@@ -142,10 +137,10 @@ describe('code', () => {
   });
 
   it('should mark nested section characters', async () => {
-    await ready();
     const code = '/*<<u*/a/*<<v*/b/*>>*/c/*>>*/';
-    expect(process(parse('tsx', code)).chars.map(({ sections }) => sections))
-      .toMatchInlineSnapshot(`
+    expect(
+      process(await parse('tsx', code)).chars.map(({ sections }) => sections),
+    ).toMatchInlineSnapshot(`
         [
           [
             [
@@ -170,9 +165,8 @@ describe('code', () => {
   });
 
   it('should mark special tags', async () => {
-    await ready();
     const code = '/*<t>*/code';
-    expect(parse('tsx', code).chars.map(({ isSpecial }) => isSpecial))
+    expect((await parse('tsx', code)).chars.map(({ isSpecial }) => isSpecial))
       .toMatchInlineSnapshot(`
       [
         true,
@@ -191,10 +185,9 @@ describe('code', () => {
   });
 
   it('should mark alternatives', async () => {
-    await ready();
     const code = '(/*<t>*/)';
-    const parsed = parse('tsx', code);
-    const alt = addAlternative(parsed, 't', 'b', '5');
+    const parsed = await parse('tsx', code);
+    const alt = await addAlternative(parsed, 't', 'b', '5');
     expect(alt.chars.map(({ sections }) => sections)).toMatchInlineSnapshot(`
       [
         [],
@@ -210,10 +203,9 @@ describe('code', () => {
   });
 
   it('should remove special characters', async () => {
-    await ready();
     const code = '/*<t>*/5';
-    const parsed = parse('tsx', code);
-    const alt = addAlternative(parsed, 't', 'b', '-');
+    const parsed = await parse('tsx', code);
+    const alt = await addAlternative(parsed, 't', 'b', '-');
     const processed = process(alt, {});
     expect(processed.chars).toMatchInlineSnapshot(`
       [
@@ -234,10 +226,9 @@ describe('code', () => {
   });
 
   it('should replace tags', async () => {
-    await ready();
     const code = '(/*<t>*/)';
-    const parsed = parse('tsx', code);
-    const alt = addAlternative(parsed, 't', 'b', '1');
+    const parsed = await parse('tsx', code);
+    const alt = await addAlternative(parsed, 't', 'b', '1');
     const processed = process(alt, { t: 'b' });
     expect(processed.chars.reduce((str, { char }) => str + char, '')).toEqual(
       '(1)',
@@ -245,9 +236,8 @@ describe('code', () => {
   });
 
   it('should allow for hiding sections', async () => {
-    await ready();
     const code = '/*<<t*/-/*>>*/1';
-    const parsed = parse('tsx', code);
+    const parsed = await parse('tsx', code);
     const processed = process(parsed, { t: false });
     expect(processed.chars.reduce((str, { char }) => str + char, '')).toEqual(
       '1',
@@ -255,9 +245,8 @@ describe('code', () => {
   });
 
   it('should allow for keeping sections', async () => {
-    await ready();
     const code = '/*<<t*/-/*>>*/1';
-    const parsed = parse('tsx', code);
+    const parsed = await parse('tsx', code);
     const processed = process(parsed, { t: true });
     expect(processed.chars.reduce((str, { char }) => str + char, '')).toEqual(
       '-1',
@@ -265,9 +254,8 @@ describe('code', () => {
   });
 
   it('should keep sections by default', async () => {
-    await ready();
     const code = '/*<<t*/-/*>>*/1';
-    const parsed = parse('tsx', code);
+    const parsed = await parse('tsx', code);
     const processed = process(parsed, {});
     expect(processed.chars.reduce((str, { char }) => str + char, '')).toEqual(
       '-1',
@@ -275,9 +263,8 @@ describe('code', () => {
   });
 
   it('should mark next line', async () => {
-    await ready();
     const code = '//: next-line tag\na\n';
-    const parsed = parse('tsx', code);
+    const parsed = await parse('tsx', code);
     const processed = process(parsed, {});
     expect(processed.chars.map(({ sections }) => sections))
       .toMatchInlineSnapshot(`
@@ -297,9 +284,8 @@ describe('code', () => {
   });
 
   it('should mark this line', async () => {
-    await ready();
     const code = 'a//: this-line tag\n';
-    const parsed = parse('tsx', code);
+    const parsed = await parse('tsx', code);
     const processed = process(parsed, {});
     expect(processed.chars.map(({ sections }) => sections))
       .toMatchInlineSnapshot(`

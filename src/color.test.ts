@@ -1,12 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { ready, parse, process } from './code';
+import { parse, process } from './code';
 import { color, Undertone } from './color';
 import { tokenize } from './transition';
 
 describe('colorTokens', () => {
   it('should color tokens', async () => {
-    await ready();
-    const parsed = parse('tsx', 'true');
+    const parsed = await parse('tsx', 'true');
     expect(tokenize(color(parsed))).toMatchInlineSnapshot(`
       {
         "language": "tsx",
@@ -31,8 +30,7 @@ describe('colorTokens', () => {
   });
 
   it('should highlight tokens', async () => {
-    await ready();
-    const parsed = parse('tsx', '/*<<b*/true/*>>*/');
+    const parsed = await parse('tsx', '/*<<b*/true/*>>*/');
     expect(tokenize(process(color(parsed, { b: Undertone.Blue }), {})))
       .toMatchInlineSnapshot(`
       {
