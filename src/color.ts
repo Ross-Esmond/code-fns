@@ -1,4 +1,18 @@
-import { Parsed, Char, Parsable, ensureParsed, getColor } from './code';
+import { Parsed, Char } from './code';
+import style from './dark-style.json';
+
+const rules = new Map(
+  Object.entries(style).map(([k, v]) => [k, new Map(Object.entries(v))]),
+);
+
+function getColor(classList: string[]): string | undefined {
+  console.assert(classList.length <= 1, `classList too long`);
+  const styles =
+    classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
+  console.assert((styles?.size ?? 0) <= 1, `more styles than just color`);
+  const color = styles?.get('color');
+  return color;
+}
 
 export enum Undertone {
   Grey = '#212121',
@@ -18,18 +32,20 @@ function getBackground(
   return relevantSection !== undefined ? highlight[relevantSection] : undefined;
 }
 
+/**
+ * @internal
+ */
 export function color(
-  code: Parsed<Char> | Parsable,
+  code: Parsed,
   highlight: Record<string, string> = {},
 ): Parsed {
-  const parsed = ensureParsed(code);
-  const chars = parsed.chars.map((char) => ({
+  const chars = code.chars.map((char) => ({
     ...char,
     color: getColor(char.classList),
     background: getBackground(char, highlight),
   }));
   return {
-    ...parsed,
+    ...code,
     chars,
   };
 }

@@ -13,5 +13,6 @@ module.exports = {
   plugins: ['@typescript-eslint', 'eslint-plugin-tsdoc'],
   rules: {
     'tsdoc/syntax': 'error',
+    'no-irregular-whitespace': 'off',
   },
 };
