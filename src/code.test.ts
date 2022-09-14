@@ -303,4 +303,13 @@ describe('code', () => {
       ]
     `);
   });
+
+  it('should detect line self-closing tag', async () => {
+    const code = '//< t >';
+    const parsed = await parse('tsx', code).then((p) =>
+      addAlternative(p, 't', 'a', 'v'),
+    );
+    const processed = process(parsed, { t: 'a' });
+    expect(toString(processed)).toEqual('v');
+  });
 });

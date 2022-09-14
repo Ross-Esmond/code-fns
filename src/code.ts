@@ -104,6 +104,7 @@ const sectionStartRegex = /^\/\*<<[^\S\n]*([\w-]+)[^\S\n]*\*\/$/;
 const sectionEndRegex = /^\/\*>>[^\S\n]*\*\/$/;
 /** @internal */
 export const tagRegex = /^\/\*<[^\S\n]*([\w-]+)[^\S\n]*>\*\/$/;
+const lineTagRegex = /^\/\/<[^\S\n]*([\w-]+?)[^\S\n]*>[^\S\n]*$/;
 
 const specialTypes: [RegExp, string[]][] = [
   [nextLineRegex, ['nextLine', 'line']],
@@ -113,6 +114,7 @@ const specialTypes: [RegExp, string[]][] = [
   [sectionStartRegex, ['sectionStart', 'span']],
   [sectionEndRegex, ['sectionEnd', 'span']],
   [tagRegex, ['tag', 'span']],
+  [lineTagRegex, ['lineTag', 'line']],
 ];
 function getSpecialType(span: string) {
   for (const [regex, result] of specialTypes) {
@@ -213,8 +215,12 @@ export async function addAlternative(
   chars.forEach((char, at) => {
     if (char.token[0] !== 0) return;
     const span = getSpan(chars, at);
-    if (char.classList[0] === 'pl-c' && tagRegex.test(span)) {
-      const [, tagName] = span.match(tagRegex) as [string, string];
+    if (
+      char.classList[0] === 'pl-c' &&
+      (tagRegex.test(span) || lineTagRegex.test(span))
+    ) {
+      const matcher = tagRegex.test(span) ? tagRegex : lineTagRegex;
+      const [, tagName] = span.match(matcher) as [string, string];
       if (tagName === tag) {
         final += replacement;
         if (replacement !== '') replacements.push([at, replacement.length]);
