@@ -3,7 +3,6 @@ import {
   tagRegex,
   parse,
   Parsed,
-  Parsable,
   Token,
   Char,
   Tokenized,

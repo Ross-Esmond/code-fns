@@ -96,14 +96,14 @@ function recurse(
   return result;
 }
 
-const nextLineRegex = /^\/\/:[^\S\n]*next-line[^\S\n]+([^\n]+?)[^\S\n]*$/;
-const thisLineRegex = /^\/\/:[^\S\n]*this-line[^\S\n]+([^\n]+?)[^\S\n]*$/;
-const blockStartRegex = /^\/\/<<[^\S\n]*([^\n]+?)[^\S\n]*$/;
+const nextLineRegex = /^\/\/:[^\S\n]*next-line[^\S\n]+([\w-]+)[^\S\n]*$/;
+const thisLineRegex = /^\/\/:[^\S\n]*this-line[^\S\n]+([\w-]+)[^\S\n]*$/;
+const blockStartRegex = /^\/\/<<[^\S\n]*([\w-]+)[^\S\n]*$/;
 const blockEndRegex = /^\/\/>>[^\S\n]*$/;
-const sectionStartRegex = /^\/\*<<[^\S\n]*([^\n]+?)[^\S\n]*\*\/$/;
+const sectionStartRegex = /^\/\*<<[^\S\n]*([\w-]+)[^\S\n]*\*\/$/;
 const sectionEndRegex = /^\/\*>>[^\S\n]*\*\/$/;
 /** @internal */
-export const tagRegex = /^\/\*<[^\S\r\n]*(.*?)[^\S\r\n]*>\*\/$/;
+export const tagRegex = /^\/\*<[^\S\n]*([\w-]+)[^\S\n]*>\*\/$/;
 
 const specialTypes: [RegExp, string[]][] = [
   [nextLineRegex, ['nextLine', 'line']],
