@@ -5,7 +5,7 @@ const rules = new Map(
   Object.entries(style).map(([k, v]) => [k, new Map(Object.entries(v))]),
 );
 
-function getColor(classList: string[]): string | undefined {
+export function getColor(classList: string[]): string | undefined {
   console.assert(classList.length <= 1, `classList too long`);
   const styles =
     classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
