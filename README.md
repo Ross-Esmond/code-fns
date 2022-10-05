@@ -10,89 +10,80 @@ npm install code-fns
 
 ## Purpose
 
-Most code highlighters in JavaScript rely on HTML and CSS. When working outside
-of a standard web page, however, these formats become difficult to use. Code-fns
-is domain-agnostic, and will export tokens as plain objects to be converted to
-whatever format you choose. Specifically, code-fns was built for use in the
-Motion Canvas project, for visualizing code in videos and animations. Code-fns
-may also compute the transformation between different code blocks, so that you
-may animate between them.
+Most code highlighters in JavaScript output HTML and CSS, but if your intended
+target isn't a web page, the tags and styles would then need to be translated
+to the desired form. `code-fns` outputs raw text and hex colors, making it easy
+to render the code in whichever form you choose. Specifically, `code-fns` was
+built for use in the Motion Canvas project, for visualizing code in videos and
+animations. `code-fns` may also compute the transformation between different
+code blocks, so that you may animate between them.
 
 ## Compatibility
 
 Supports all browsers and all [maintained node
 versions](https://github.com/nodejs/Release), though you will need to use your
-own transpiler, as the package files are left mostly alone. This ensures that
-you may configure your build as you wish.
+own transpiler, as the package files use modern EcmaScript features. This
+ensures that you may configure your build as you wish.
 
 ## Usage
 
-You must initialize the project with `ready`.
+To parse code into highlighted tokens, use `language.lang-name` to select your
+language, and `parse` to highlight it.
 
 ```tsx
-import { ready } from 'code-fns';
+import { language, parse } from './tags';
 
-await ready();
+const tsx = language.tsx;
+await parse(tsx`() => true`);
 ```
 
-### Highlighting code
-
-Once initialized, you may highlight your code with
+This will generate the following output.
 
 ```tsx
-import { ready, color } from 'code-fns';
-
-await ready();
-
-const code = color(['tsx', '() => true']);
+[
+  { code: '() ', color: '#c9d1d9' },
+  { code: '=>', color: '#ff7b72' },
+  { code: ' ', color: '#c9d1d9' },
+  { code: 'true', color: '#79c0ff' },
+];
 ```
 
-### Transitioning code (for animations)
-
-Code transitions use comment templating to adjust code. For instance, in any
-language with multiline comments using `/* */`, a tagged code string would look
-like
+You may then use templating to generate your code dynamically.
 
 ```tsx
-(/*< params >*/) => {};
-```
+import { language, parse } from './tags';
 
-You may then replace these tags using `substitute`.
+const tsx = language.tsx;
+const generate = (result: string) => tsx`(${result});`;
+await parse(generate('false'));
+```
 
 ```tsx
-import { ready, substitute, toString } from 'code-fns';
-
-await ready();
-
-const code = `(/*< params >*/) => { }`;
-const subbed = substitute(['tsx', code], { params: 'input: any' });
-console.log(toString(subbed));
-// (input: any) => { }
+[
+  { code: '(', color: '#c9d1d9' },
+  { code: 'false', color: '#79c0ff' },
+  { code: ');', color: '#c9d1d9' },
+];
 ```
 
-With two substitutions, however, you may build a transition, which may serve as
-the basis for an animation.
+To compute the difference between two generated chunks of code, use `diff`.
 
 ```tsx
-import { ready, transition, toString } from 'code-fns';
+import { language, diff } from './tags';
 
-await ready();
-
-const code = `(/*< params >*/) => { }`;
-const transform = transition(
-  ['tsx', code],
-  { params: 'input' },
-  { params: 'other' },
-);
+const tsx = language.tsx;
+const generate = (result: string) => tsx`(${result});`;
+await diff(generate('true'), generate('false'));
 ```
-
-The `transform` object will contain an array of tokens, each of which with a
-provinance property of either "create", "delete", or "retain".
 
 ```tsx
-import { ready, transition, toString } from 'code-fns';
-
-await ready();
-
-const transform = transition(['tsx', '/*<t>*/'], { t: 'true' }, { t: 'false' });
+[
+  { code: '(', color: '#c9d1d9', morph: 'retain' },
+  { code: 'true', color: '#79c0ff', morph: 'delete' },
+  { code: 'false', color: '#79c0ff', morph: 'create' },
+  { code: ');', color: '#c9d1d9', morph: 'retain' },
+];
 ```
+
+This can be helpful to create transitional animations between code, as in
+Motion Canvas.

@@ -1,1 +1,1 @@
-export * from './code';
+export * from './tags';

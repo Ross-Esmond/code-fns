@@ -1,5 +1,5 @@
 import { createStarryNight, all } from '@wooorm/starry-night';
-import { getColor } from './color';
+import style from './dark-style';
 import type { RootContent } from 'hast';
 
 const starryNight = createStarryNight(all);
@@ -15,7 +15,7 @@ type Code = CodeTree | string;
 type TaggedFunction = (code: TemplateStringsArray, ...rest: Code[]) => CodeTree;
 type LanguageDictionary = Record<string, TaggedFunction>;
 const handler = {
-  get(_: null, language: string): TaggedFunction {
+  get(_: LanguageDictionary, language: string): TaggedFunction {
     return (code: TemplateStringsArray, ...rest: Code[]): CodeTree => {
       return {
         language,
@@ -42,7 +42,23 @@ export async function parse(code: CodeTree): Promise<Token[]> {
     throw new Error(`language ${code.language} not found`);
   }
   const parsed = sn.highlight(raw, scope);
-  return parsed.children.map(colorRecurse).flat();
+  return parsed.children
+    .map(colorRecurse)
+    .flat()
+    .map(({ color, ...rest }) => ({ ...rest, color: color ?? '#c9d1d9' }));
+}
+
+const rules = new Map(
+  Object.entries(style).map(([k, v]) => [k, new Map(Object.entries(v))]),
+);
+
+export function getColor(classList: string[]): string | undefined {
+  console.assert(classList.length <= 1, `classList too long`);
+  const styles =
+    classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
+  console.assert((styles?.size ?? 0) <= 1, `more styles than just color`);
+  const color = styles?.get('color');
+  return color;
 }
 
 function colorRecurse(parsed: RootContent): Token[] {
@@ -93,7 +109,7 @@ function colorRecurse(parsed: RootContent): Token[] {
   }
 }
 
-function integrate(code: Code) {
+function integrate(code: Code): string {
   if (typeof code === 'string') return code;
 
   return String.raw(
@@ -123,6 +139,9 @@ function isLevelEquivilant(one: Code | null, two: Code | null): boolean {
     console.info(`found nodes to be the same length`);
     return one.spans.every((span, i) => span === two.spans[i]);
   }
+  console.error(one);
+  console.error(two);
+  throw new Error('Could not determine equivilance of nodes');
 }
 
 function chars(tokens: Token[]): Token[] {
@@ -158,7 +177,7 @@ export async function diff(start: CodeTree, end: CodeTree) {
   const endParsed = chars(await parse(end));
   let index = 0;
   let endex = 0;
-  const result = [];
+  const result = [] as Token[];
   function recurse(one: Code | null, two: Code | null) {
     const progress = (l: string, r?: string) => {
       if (r == null) r = l;
@@ -189,6 +208,9 @@ export async function diff(start: CodeTree, end: CodeTree) {
       }
     };
     if (isLevelEquivilant(one, two)) {
+      if (one == null || two == null) {
+        throw new Error('equivilant nodes should not be null');
+      }
       console.info(`nodes were found to be level equivilant`);
       if (typeof one === 'string') {
         progress(one);
@@ -198,7 +220,7 @@ export async function diff(start: CodeTree, end: CodeTree) {
           progress(one.spans[n]);
           recurse(one.nodes[n], two.nodes[n]);
         }
-        progress(one.spans.at(-1));
+        progress(one.spans.at(-1) ?? '');
       }
     } else {
       console.info(`nodes were NOT found to be level equivilant`);
@@ -214,7 +236,7 @@ export async function diff(start: CodeTree, end: CodeTree) {
           progress(one.spans[n], '');
           recurse(one.nodes[n], null);
         }
-        progress(one.spans.at(-1), '');
+        progress(one.spans.at(-1) ?? '', '');
       }
       if (two != null && typeof two !== 'string') {
         for (let n = 0; n < two.nodes.length; n++) {

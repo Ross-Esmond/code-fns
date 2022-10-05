@@ -7,8 +7,80 @@ test('highlights code', async () => {
   const code = tsx`true;`;
   expect(await parse(code)).toEqual([
     { code: 'true', color: '#79c0ff' },
-    { code: ';', color: null },
+    { code: ';', color: '#c9d1d9' },
   ]);
+});
+
+describe('parse', () => {
+  test('README', async () => {
+    const tsx = language.tsx;
+    const result = await parse(tsx`() => true`);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "code": "() ",
+          "color": "#c9d1d9",
+        },
+        {
+          "code": "=>",
+          "color": "#ff7b72",
+        },
+        {
+          "code": " ",
+          "color": "#c9d1d9",
+        },
+        {
+          "code": "true",
+          "color": "#79c0ff",
+        },
+      ]
+    `);
+
+    const generate = (result: string) => tsx`(${result});`;
+    const two = await parse(generate('false'));
+    expect(two).toMatchInlineSnapshot(`
+      [
+        {
+          "code": "(",
+          "color": "#c9d1d9",
+        },
+        {
+          "code": "false",
+          "color": "#79c0ff",
+        },
+        {
+          "code": ");",
+          "color": "#c9d1d9",
+        },
+      ]
+    `);
+
+    const three = await diff(generate('true'), generate('false'));
+    expect(three).toMatchInlineSnapshot(`
+      [
+        {
+          "code": "(",
+          "color": "#c9d1d9",
+          "morph": "retain",
+        },
+        {
+          "code": "true",
+          "color": "#79c0ff",
+          "morph": "delete",
+        },
+        {
+          "code": "false",
+          "color": "#79c0ff",
+          "morph": "create",
+        },
+        {
+          "code": ");",
+          "color": "#c9d1d9",
+          "morph": "retain",
+        },
+      ]
+    `);
+  });
 });
 
 describe('diff', () => {
@@ -17,7 +89,7 @@ describe('diff', () => {
     const end = tsx`true;`;
     expect(await diff(start, end)).toEqual([
       { code: 'true', color: '#79c0ff', morph: 'retain' },
-      { code: ';', color: null, morph: 'retain' },
+      { code: ';', color: '#c9d1d9', morph: 'retain' },
     ]);
   });
 
@@ -27,7 +99,7 @@ describe('diff', () => {
     expect(await diff(start, end)).toEqual([
       { code: 'true', color: '#79c0ff', morph: 'delete' },
       { code: 'false', color: '#79c0ff', morph: 'create' },
-      { code: ';', color: null, morph: 'retain' },
+      { code: ';', color: '#c9d1d9', morph: 'retain' },
     ]);
   });
 
@@ -37,7 +109,7 @@ describe('diff', () => {
     expect(await diff(start, end)).toEqual([
       { code: 'true', color: '#79c0ff', morph: 'delete' },
       { code: 'false', color: '#79c0ff', morph: 'create' },
-      { code: ';', color: null, morph: 'retain' },
+      { code: ';', color: '#c9d1d9', morph: 'retain' },
     ]);
   });
 
@@ -47,7 +119,7 @@ describe('diff', () => {
     expect(await diff(start, end)).toEqual([
       { code: 'true', color: '#79c0ff', morph: 'delete' },
       { code: 'true', color: '#79c0ff', morph: 'create' },
-      { code: ';', color: null, morph: 'retain' },
+      { code: ';', color: '#c9d1d9', morph: 'retain' },
     ]);
   });
 
@@ -69,7 +141,7 @@ describe('diff', () => {
       { code: '+', color: '#ff7b72', morph: 'retain' },
       { code: '2', color: '#79c0ff', morph: 'delete' },
       { code: '3', color: '#79c0ff', morph: 'create' },
-      { code: ';', color: null, morph: 'retain' },
+      { code: ';', color: '#c9d1d9', morph: 'retain' },
     ]);
   });
 });
