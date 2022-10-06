@@ -4,16 +4,19 @@ import type { RootContent } from 'hast';
 
 const starryNight = createStarryNight(all);
 
-interface CodeTree {
+export interface CodeTree {
   language: string;
   spans: string[];
   nodes: Code[];
 }
 
-type Code = CodeTree | string;
+export type Code = CodeTree | string;
 
-type TaggedFunction = (code: TemplateStringsArray, ...rest: Code[]) => CodeTree;
-type LanguageDictionary = Record<string, TaggedFunction>;
+export type TaggedFunction = (
+  code: TemplateStringsArray,
+  ...rest: Code[]
+) => CodeTree;
+export type LanguageDictionary = Record<string, TaggedFunction>;
 const handler = {
   get(_: LanguageDictionary, language: string): TaggedFunction {
     return (code: TemplateStringsArray, ...rest: Code[]): CodeTree => {
@@ -28,7 +31,7 @@ const handler = {
 
 export const language = new Proxy<LanguageDictionary>({}, handler);
 
-interface Token {
+export interface Token {
   code: string;
   color: string | null;
   morph?: 'create' | 'delete' | 'retain';
