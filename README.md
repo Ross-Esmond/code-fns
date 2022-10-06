@@ -31,8 +31,9 @@ To parse code into highlighted tokens, use `language.lang-name` to select your
 language, and `parse` to highlight it.
 
 ```tsx
-import { language, parse } from './tags';
+import { ready, language, parse } from './tags';
 
+await ready();
 const tsx = language.tsx;
 await parse(tsx`() => true`);
 ```
@@ -51,8 +52,9 @@ This will generate the following output.
 You may then use templating to generate your code dynamically.
 
 ```tsx
-import { language, parse } from './tags';
+import { ready, language, parse } from './tags';
 
+await ready();
 const tsx = language.tsx;
 const generate = (result: string) => tsx`(${result});`;
 await parse(generate('false'));
@@ -69,8 +71,9 @@ await parse(generate('false'));
 To compute the difference between two generated chunks of code, use `diff`.
 
 ```tsx
-import { language, diff } from './tags';
+import { ready, language, diff } from './tags';
 
+await ready();
 const tsx = language.tsx;
 const generate = (result: string) => tsx`(${result});`;
 await diff(generate('true'), generate('false'));

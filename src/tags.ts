@@ -1,8 +1,17 @@
 import { createStarryNight, all } from '@wooorm/starry-night';
 import style from './dark-style';
-import type { RootContent } from 'hast';
+import type { Root, RootContent } from 'hast';
+
+export interface StarryNight {
+  flagToScope: (flag: string) => string | undefined;
+  highlight: (value: string, scope: string) => Root;
+}
 
 const starryNight = createStarryNight(all);
+let starryNightCache: StarryNight | null = null;
+export async function ready() {
+  starryNightCache = await starryNight;
+}
 
 export interface CodeTree {
   language: string;
@@ -37,9 +46,10 @@ export interface Token {
   morph?: 'create' | 'delete' | 'retain';
 }
 
-export async function parse(code: CodeTree): Promise<Token[]> {
+export function parse(code: CodeTree): Token[] {
   const raw = integrate(code);
-  const sn = await starryNight;
+  if (starryNightCache == null) throw new Error(`you must await ready()`);
+  const sn = starryNightCache;
   const scope = sn.flagToScope(code.language);
   if (typeof scope !== 'string') {
     throw new Error(`language ${code.language} not found`);
@@ -175,9 +185,9 @@ function tokens(chars: Token[]) {
   return result;
 }
 
-export async function diff(start: CodeTree, end: CodeTree) {
-  const startParsed = chars(await parse(start));
-  const endParsed = chars(await parse(end));
+export function diff(start: CodeTree, end: CodeTree) {
+  const startParsed = chars(parse(start));
+  const endParsed = chars(parse(end));
   let index = 0;
   let endex = 0;
   const result = [] as Token[];

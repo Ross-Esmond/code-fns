@@ -1,11 +1,12 @@
-import { language, parse, diff } from './tags';
+import { language, ready, parse, diff } from './tags';
 import { describe, expect, test } from 'vitest';
 
 const tsx = language.tsx;
 
 test('highlights code', async () => {
   const code = tsx`true;`;
-  expect(await parse(code)).toEqual([
+  await ready();
+  expect(parse(code)).toEqual([
     { code: 'true', color: '#79c0ff' },
     { code: ';', color: '#c9d1d9' },
   ]);
@@ -13,8 +14,9 @@ test('highlights code', async () => {
 
 describe('parse', () => {
   test('README', async () => {
+    await ready();
     const tsx = language.tsx;
-    const result = await parse(tsx`() => true`);
+    const result = parse(tsx`() => true`);
     expect(result).toMatchInlineSnapshot(`
       [
         {
@@ -37,7 +39,7 @@ describe('parse', () => {
     `);
 
     const generate = (result: string) => tsx`(${result});`;
-    const two = await parse(generate('false'));
+    const two = parse(generate('false'));
     expect(two).toMatchInlineSnapshot(`
       [
         {
@@ -55,7 +57,7 @@ describe('parse', () => {
       ]
     `);
 
-    const three = await diff(generate('true'), generate('false'));
+    const three = diff(generate('true'), generate('false'));
     expect(three).toMatchInlineSnapshot(`
       [
         {
@@ -85,18 +87,20 @@ describe('parse', () => {
 
 describe('diff', () => {
   test('equal inputs', async () => {
+    await ready();
     const start = tsx`true;`;
     const end = tsx`true;`;
-    expect(await diff(start, end)).toEqual([
+    expect(diff(start, end)).toEqual([
       { code: 'true', color: '#79c0ff', morph: 'retain' },
       { code: ';', color: '#c9d1d9', morph: 'retain' },
     ]);
   });
 
   test('different inputs', async () => {
+    await ready();
     const start = tsx`${'true'};`;
     const end = tsx`${'false'};`;
-    expect(await diff(start, end)).toEqual([
+    expect(diff(start, end)).toEqual([
       { code: 'true', color: '#79c0ff', morph: 'delete' },
       { code: 'false', color: '#79c0ff', morph: 'create' },
       { code: ';', color: '#c9d1d9', morph: 'retain' },
@@ -104,9 +108,10 @@ describe('diff', () => {
   });
 
   test('nested inputs', async () => {
+    await ready();
     const start = tsx`${tsx`true`};`;
     const end = tsx`${tsx`false`};`;
-    expect(await diff(start, end)).toEqual([
+    expect(diff(start, end)).toEqual([
       { code: 'true', color: '#79c0ff', morph: 'delete' },
       { code: 'false', color: '#79c0ff', morph: 'create' },
       { code: ';', color: '#c9d1d9', morph: 'retain' },
@@ -114,9 +119,10 @@ describe('diff', () => {
   });
 
   test('tagged vs string', async () => {
+    await ready();
     const start = tsx`${'true'};`;
     const end = tsx`${tsx`true`};`;
-    expect(await diff(start, end)).toEqual([
+    expect(diff(start, end)).toEqual([
       { code: 'true', color: '#79c0ff', morph: 'delete' },
       { code: 'true', color: '#79c0ff', morph: 'create' },
       { code: ';', color: '#c9d1d9', morph: 'retain' },
@@ -124,9 +130,10 @@ describe('diff', () => {
   });
 
   test('partial token mismatch', async () => {
+    await ready();
     const start = tsx`foo${'bar'}`;
     const end = tsx`foo${'baz'}`;
-    expect(await diff(start, end)).toEqual([
+    expect(diff(start, end)).toEqual([
       { code: 'foo', color: '#c9d1d9', morph: 'retain' },
       { code: 'bar', color: '#c9d1d9', morph: 'delete' },
       { code: 'baz', color: '#c9d1d9', morph: 'create' },
@@ -134,9 +141,10 @@ describe('diff', () => {
   });
 
   test('recursive', async () => {
+    await ready();
     const start = tsx`${tsx`1+${tsx`2`}`};`;
     const end = tsx`${tsx`1+${tsx`3`}`};`;
-    expect(await diff(start, end)).toEqual([
+    expect(diff(start, end)).toEqual([
       { code: '1', color: '#79c0ff', morph: 'retain' },
       { code: '+', color: '#ff7b72', morph: 'retain' },
       { code: '2', color: '#79c0ff', morph: 'delete' },
