@@ -63,22 +63,48 @@ describe('parse', () => {
         {
           "code": "(",
           "color": "#c9d1d9",
+          "from": [
+            0,
+            0,
+          ],
           "morph": "retain",
+          "to": [
+            0,
+            0,
+          ],
         },
         {
           "code": "true",
           "color": "#79c0ff",
+          "from": [
+            1,
+            0,
+          ],
           "morph": "delete",
+          "to": null,
         },
         {
           "code": "false",
           "color": "#79c0ff",
+          "from": null,
           "morph": "create",
+          "to": [
+            1,
+            0,
+          ],
         },
         {
           "code": ");",
           "color": "#c9d1d9",
+          "from": [
+            5,
+            0,
+          ],
           "morph": "retain",
+          "to": [
+            6,
+            0,
+          ],
         },
       ]
     `);
@@ -91,8 +117,20 @@ describe('diff', () => {
     const start = tsx`true;`;
     const end = tsx`true;`;
     expect(diff(start, end)).toEqual([
-      { code: 'true', color: '#79c0ff', morph: 'retain' },
-      { code: ';', color: '#c9d1d9', morph: 'retain' },
+      {
+        code: 'true',
+        color: '#79c0ff',
+        morph: 'retain',
+        from: [0, 0],
+        to: [0, 0],
+      },
+      {
+        code: ';',
+        color: '#c9d1d9',
+        morph: 'retain',
+        from: [4, 0],
+        to: [4, 0],
+      },
     ]);
   });
 
@@ -101,9 +139,27 @@ describe('diff', () => {
     const start = tsx`${'true'};`;
     const end = tsx`${'false'};`;
     expect(diff(start, end)).toEqual([
-      { code: 'true', color: '#79c0ff', morph: 'delete' },
-      { code: 'false', color: '#79c0ff', morph: 'create' },
-      { code: ';', color: '#c9d1d9', morph: 'retain' },
+      {
+        code: 'true',
+        color: '#79c0ff',
+        morph: 'delete',
+        from: [0, 0],
+        to: null,
+      },
+      {
+        code: 'false',
+        color: '#79c0ff',
+        morph: 'create',
+        from: null,
+        to: [0, 0],
+      },
+      {
+        code: ';',
+        color: '#c9d1d9',
+        morph: 'retain',
+        from: [4, 0],
+        to: [5, 0],
+      },
     ]);
   });
 
@@ -112,9 +168,27 @@ describe('diff', () => {
     const start = tsx`${tsx`true`};`;
     const end = tsx`${tsx`false`};`;
     expect(diff(start, end)).toEqual([
-      { code: 'true', color: '#79c0ff', morph: 'delete' },
-      { code: 'false', color: '#79c0ff', morph: 'create' },
-      { code: ';', color: '#c9d1d9', morph: 'retain' },
+      {
+        code: 'true',
+        color: '#79c0ff',
+        morph: 'delete',
+        from: [0, 0],
+        to: null,
+      },
+      {
+        code: 'false',
+        color: '#79c0ff',
+        morph: 'create',
+        from: null,
+        to: [0, 0],
+      },
+      {
+        code: ';',
+        color: '#c9d1d9',
+        morph: 'retain',
+        from: [4, 0],
+        to: [5, 0],
+      },
     ]);
   });
 
@@ -123,9 +197,27 @@ describe('diff', () => {
     const start = tsx`${'true'};`;
     const end = tsx`${tsx`true`};`;
     expect(diff(start, end)).toEqual([
-      { code: 'true', color: '#79c0ff', morph: 'delete' },
-      { code: 'true', color: '#79c0ff', morph: 'create' },
-      { code: ';', color: '#c9d1d9', morph: 'retain' },
+      {
+        code: 'true',
+        color: '#79c0ff',
+        morph: 'delete',
+        from: [0, 0],
+        to: null,
+      },
+      {
+        code: 'true',
+        color: '#79c0ff',
+        morph: 'create',
+        from: null,
+        to: [0, 0],
+      },
+      {
+        code: ';',
+        color: '#c9d1d9',
+        morph: 'retain',
+        from: [4, 0],
+        to: [4, 0],
+      },
     ]);
   });
 
@@ -134,9 +226,27 @@ describe('diff', () => {
     const start = tsx`foo${'bar'}`;
     const end = tsx`foo${'baz'}`;
     expect(diff(start, end)).toEqual([
-      { code: 'foo', color: '#c9d1d9', morph: 'retain' },
-      { code: 'bar', color: '#c9d1d9', morph: 'delete' },
-      { code: 'baz', color: '#c9d1d9', morph: 'create' },
+      {
+        code: 'foo',
+        color: '#c9d1d9',
+        morph: 'retain',
+        from: [0, 0],
+        to: [0, 0],
+      },
+      {
+        code: 'bar',
+        color: '#c9d1d9',
+        morph: 'delete',
+        from: [3, 0],
+        to: null,
+      },
+      {
+        code: 'baz',
+        color: '#c9d1d9',
+        morph: 'create',
+        from: null,
+        to: [3, 0],
+      },
     ]);
   });
 
@@ -145,11 +255,29 @@ describe('diff', () => {
     const start = tsx`${tsx`1+${tsx`2`}`};`;
     const end = tsx`${tsx`1+${tsx`3`}`};`;
     expect(diff(start, end)).toEqual([
-      { code: '1', color: '#79c0ff', morph: 'retain' },
-      { code: '+', color: '#ff7b72', morph: 'retain' },
-      { code: '2', color: '#79c0ff', morph: 'delete' },
-      { code: '3', color: '#79c0ff', morph: 'create' },
-      { code: ';', color: '#c9d1d9', morph: 'retain' },
+      {
+        code: '1',
+        color: '#79c0ff',
+        morph: 'retain',
+        from: [0, 0],
+        to: [0, 0],
+      },
+      {
+        code: '+',
+        color: '#ff7b72',
+        morph: 'retain',
+        from: [1, 0],
+        to: [1, 0],
+      },
+      { code: '2', color: '#79c0ff', morph: 'delete', from: [2, 0], to: null },
+      { code: '3', color: '#79c0ff', morph: 'create', from: null, to: [2, 0] },
+      {
+        code: ';',
+        color: '#c9d1d9',
+        morph: 'retain',
+        from: [3, 0],
+        to: [3, 0],
+      },
     ]);
   });
 });

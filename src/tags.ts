@@ -40,10 +40,17 @@ const handler = {
 
 export const language = new Proxy<LanguageDictionary>({}, handler);
 
+export type Location = [number, number];
+
 export interface Token {
   code: string;
-  color: string | null;
-  morph?: 'create' | 'delete' | 'retain';
+  color: string;
+}
+
+export interface MorphToken extends Token {
+  morph: 'create' | 'delete' | 'retain';
+  from: Location | null;
+  to: Location | null;
 }
 
 export function parse(code: CodeTree): Token[] {
@@ -58,7 +65,10 @@ export function parse(code: CodeTree): Token[] {
   return parsed.children
     .map(colorRecurse)
     .flat()
-    .map(({ color, ...rest }) => ({ ...rest, color: color ?? '#c9d1d9' }));
+    .map(({ color, ...rest }) => ({
+      ...rest,
+      color: color === '' ? '#c9d1d9' : color,
+    }));
 }
 
 const rules = new Map(
@@ -79,7 +89,7 @@ function colorRecurse(parsed: RootContent): Token[] {
     return [
       {
         code: parsed.value,
-        color: null,
+        color: '',
       },
     ];
   } else if (parsed.type === 'element') {
@@ -89,7 +99,7 @@ function colorRecurse(parsed: RootContent): Token[] {
     const result = [];
     const emit = () => {
       if (temp !== '') {
-        if (color != null) {
+        if (color != '') {
           result.push({
             code: temp,
             color,
@@ -97,7 +107,7 @@ function colorRecurse(parsed: RootContent): Token[] {
         } else {
           result.push({
             code: temp,
-            color: null,
+            color: '',
           });
         }
         temp = '';
@@ -106,7 +116,7 @@ function colorRecurse(parsed: RootContent): Token[] {
     let temp = '';
     for (const child of children) {
       for (const item of child) {
-        if (item.color === null) {
+        if (item.color === '') {
           temp += item.code;
         } else {
           emit();
@@ -166,14 +176,17 @@ function chars(tokens: Token[]): Token[] {
   });
 }
 
-function tokens(chars: Token[]) {
+function tokens(chars: MorphToken[]): MorphToken[] {
   const result = [];
   let token = null;
   for (const char of chars) {
     if (token == null) {
       token = char;
     } else {
-      if (token.color === char.color && token.morph === char.morph) {
+      if (char.code === '\n') {
+        result.push(token);
+        token = null;
+      } else if (token.color === char.color && token.morph === char.morph) {
         token.code += char.code;
       } else {
         result.push(token);
@@ -181,7 +194,7 @@ function tokens(chars: Token[]) {
       }
     }
   }
-  result.push(token);
+  if (token != null) result.push(token);
   return result;
 }
 
@@ -190,7 +203,11 @@ export function diff(start: CodeTree, end: CodeTree) {
   const endParsed = chars(parse(end));
   let index = 0;
   let endex = 0;
-  const result = [] as Token[];
+  const result: {
+    code: string;
+    color: string;
+    morph: 'retain' | 'delete' | 'create';
+  }[] = [];
   function recurse(one: Code | null, two: Code | null) {
     const progress = (l: string, r?: string) => {
       if (r == null) r = l;
@@ -198,7 +215,8 @@ export function diff(start: CodeTree, end: CodeTree) {
       const startIndex = index;
       while (index < startIndex + l.length && index < startParsed.length) {
         result.push({
-          ...startParsed[index],
+          code: startParsed[index].code,
+          color: startParsed[index].color,
           morph: l === r ? 'retain' : 'delete',
         });
         index++;
@@ -212,7 +230,8 @@ export function diff(start: CodeTree, end: CodeTree) {
       ) {
         if (r !== l) {
           result.push({
-            ...endParsed[endex],
+            code: endParsed[endex].code,
+            color: endParsed[endex].color,
             morph: 'create',
           });
         }
@@ -261,5 +280,29 @@ export function diff(start: CodeTree, end: CodeTree) {
     }
   }
   recurse(start, end);
-  return tokens(result);
+  let [sat, sln, eat, eln] = [0, 0, 0, 0];
+  const positioned = result.map(({ code, color, morph }) => {
+    const value: MorphToken = {
+      code,
+      color,
+      morph,
+      from: morph === 'create' ? null : [sat, sln],
+      to: morph === 'delete' ? null : [eat, eln],
+    };
+    if (code === '\n') {
+      if (morph !== 'create') {
+        sat = 0;
+        sln++;
+      }
+      if (morph !== 'delete') {
+        eat = 0;
+        eln++;
+      }
+    } else {
+      if (morph !== 'create') sat++;
+      if (morph !== 'delete') eat++;
+    }
+    return value;
+  });
+  return tokens(positioned);
 }
