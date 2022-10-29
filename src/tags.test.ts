@@ -1,4 +1,4 @@
-import { language, ready, parse, diff } from './tags';
+import { language, ready, parse, diff, toString } from './tags';
 import { describe, expect, test } from 'vitest';
 
 const tsx = language.tsx;
@@ -13,6 +13,103 @@ test('highlights code', async () => {
 });
 
 describe('parse', () => {
+  describe('undent', () => {
+    test('keep', async () => {
+      await ready();
+      const tsx = language.tsx;
+      const result = parse(tsx`    true`);
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "code": "    ",
+            "color": "#c9d1d9",
+          },
+          {
+            "code": "true",
+            "color": "#79c0ff",
+          },
+        ]
+      `);
+    });
+
+    test('fix', async () => {
+      await ready();
+      const tsx = language.tsx;
+      const result = parse(tsx`
+        true`);
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "code": "true",
+            "color": "#79c0ff",
+          },
+        ]
+      `);
+    });
+
+    test('template', async () => {
+      await ready();
+      const tsx = language.tsx;
+      const result = parse(tsx`
+        ${'true'}`);
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "code": "true",
+            "color": "#79c0ff",
+          },
+        ]
+      `);
+    });
+
+    test('replacement', async () => {
+      await ready();
+      const tsx = language.tsx;
+      const replacement = `
+        true`;
+      const result = parse(tsx`
+        true
+        ${replacement}
+        true`);
+      expect(toString(result)).toMatchInlineSnapshot(`
+        "true
+        true
+        true"
+      `);
+    });
+
+    test('replacement with indentation', async () => {
+      await ready();
+      const tsx = language.tsx;
+      const replacement = `true`;
+      const result = parse(tsx`
+        false
+          ${replacement}`);
+      expect(toString(result)).toMatchInlineSnapshot(`
+        "false
+          true"
+      `);
+    });
+
+    test('reindents nested code', async () => {
+      await ready();
+      const tsx = language.tsx;
+      const body = tsx`
+some();
+code();`;
+      const result = parse(tsx`
+function (${''}) {
+  ${body}
+}`);
+      expect(toString(result)).toMatchInlineSnapshot(`
+        "function () {
+          some();
+          code();
+        }"
+      `);
+    });
+  });
+
   test('README', async () => {
     await ready();
     const tsx = language.tsx;
@@ -279,5 +376,71 @@ describe('diff', () => {
         to: [3, 0],
       },
     ]);
+  });
+
+  test('indented', async () => {
+    await ready();
+    const truthy = tsx`
+      true`;
+    const falsy = tsx`
+      false`;
+    const start = tsx`
+      {
+        ${truthy}
+      }`;
+    const end = tsx`
+      {
+        ${falsy}
+      }`;
+    expect(diff(start, end)).toMatchInlineSnapshot(`
+      [
+        {
+          "code": "{",
+          "color": "#c9d1d9",
+          "from": [
+            0,
+            0,
+          ],
+          "morph": "retain",
+          "to": [
+            0,
+            0,
+          ],
+        },
+        {
+          "code": "true",
+          "color": "#79c0ff",
+          "from": [
+            2,
+            1,
+          ],
+          "morph": "delete",
+          "to": null,
+        },
+        {
+          "code": "false",
+          "color": "#79c0ff",
+          "from": null,
+          "morph": "create",
+          "to": [
+            2,
+            1,
+          ],
+        },
+        {
+          "code": "}",
+          "color": "#c9d1d9",
+          "from": [
+            0,
+            2,
+          ],
+          "morph": "retain",
+          "to": [
+            0,
+            2,
+          ],
+        },
+      ]
+    `);
   });
 });

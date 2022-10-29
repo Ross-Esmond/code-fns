@@ -54,7 +54,7 @@ export interface MorphToken extends Token {
 }
 
 export function parse(code: CodeTree): Token[] {
-  const raw = integrate(code);
+  const raw = integrate(reindent(code));
   if (starryNightCache == null) throw new Error(`you must await ready()`);
   const sn = starryNightCache;
   const scope = sn.flagToScope(code.language);
@@ -132,6 +132,62 @@ function colorRecurse(parsed: RootContent): Token[] {
   }
 }
 
+export function toString(tokens: Token[]): string {
+  return tokens.map((token) => token.code).join('');
+}
+
+function reindent(code: string, indent?: number): string;
+function reindent(code: CodeTree, indent?: number): CodeTree;
+function reindent(code: Code, indent?: number): Code;
+function reindent(code: Code, indent = 0): Code {
+  if (typeof code === 'string') {
+    if (code.at(0) !== '\n') {
+      return ' '.repeat(indent) + code;
+    }
+
+    const regex = /^ +/gm;
+    const matches = code.matchAll(regex);
+    let min = Infinity;
+    for (const match of matches) min = Math.min(min, match[0].length);
+    const undent = new RegExp(`^ {${min}}`, 'gm');
+    const result = code.substring(1).replace(undent, ' '.repeat(indent));
+    return result;
+  }
+
+  if (code.spans.at(0)?.at(0) !== '\n') return code;
+
+  const regex = /\n */g;
+  const matches = code.spans.flatMap((span) => [...span.matchAll(regex)]);
+  let min = Infinity;
+  for (const [match] of matches) min = Math.min(min, match.length - 1);
+  const undentRegex = new RegExp(`\n {${min}}`, 'g');
+  const spans = code.spans.map((span) =>
+    span.replace(undentRegex, '\n' + ' '.repeat(indent)),
+  );
+  spans[0] = spans[0].substring(1);
+
+  let index = 0;
+  const nodes = [];
+  for (const node of code.nodes) {
+    const before = spans[index];
+    const preindentRegex = /\n *$/;
+    const indentation = before.match(preindentRegex);
+    if (indentation != null) {
+      spans[index] = spans[index].replace(preindentRegex, '\n');
+      nodes.push(reindent(node, indentation[0].length - 1));
+    } else {
+      nodes.push(node);
+    }
+    index++;
+  }
+
+  return {
+    language: code.language,
+    spans,
+    nodes,
+  };
+}
+
 function integrate(code: Code): string {
   if (typeof code === 'string') return code;
 
@@ -192,6 +248,8 @@ function tokens(chars: MorphToken[]): MorphToken[] {
 }
 
 export function diff(start: CodeTree, end: CodeTree) {
+  start = reindent(start);
+  end = reindent(end);
   const startParsed = chars(parse(start));
   const endParsed = chars(parse(end));
   let index = 0;
@@ -292,5 +350,9 @@ export function diff(start: CodeTree, end: CodeTree) {
     }
     return value;
   });
-  return tokens(positioned);
+  const tokenized = tokens(positioned);
+
+  return tokenized.filter(({ code }) => {
+    return code.length !== 0 && !/^ +$/.test(code);
+  });
 }
