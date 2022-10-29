@@ -142,28 +142,21 @@ function integrate(code: Code): string {
 }
 
 function isLevelEquivilant(one: Code | null, two: Code | null): boolean {
-  console.info(`checking if nodes are level equivilant`);
   if (one === null || two === null) return false;
   if (
     (typeof one === 'string' && typeof two !== 'string') ||
     (typeof one !== 'string' && typeof two === 'string')
   ) {
-    console.info(`found nodes to be different types`);
     return false;
   }
   if (typeof one === 'string' && typeof two === 'string') {
-    console.info(`found nodes to be strings`);
     return one === two;
   }
   if (typeof one !== 'string' && typeof two !== 'string') {
-    console.info(`found nodes to be code nodes`);
     if (one.spans.length !== two.spans.length) return false;
 
-    console.info(`found nodes to be the same length`);
     return one.spans.every((span, i) => span === two.spans[i]);
   }
-  console.error(one);
-  console.error(two);
   throw new Error('Could not determine equivilance of nodes');
 }
 
@@ -211,7 +204,6 @@ export function diff(start: CodeTree, end: CodeTree) {
   function recurse(one: Code | null, two: Code | null) {
     const progress = (l: string, r?: string) => {
       if (r == null) r = l;
-      console.info(`progressing ${l} and ${r}`);
       const startIndex = index;
       while (index < startIndex + l.length && index < startParsed.length) {
         result.push({
@@ -220,7 +212,6 @@ export function diff(start: CodeTree, end: CodeTree) {
           morph: l === r ? 'retain' : 'delete',
         });
         index++;
-        console.info(`now at ${index} in startParsed`);
       }
       const endIndex = endex;
       while (
@@ -236,14 +227,12 @@ export function diff(start: CodeTree, end: CodeTree) {
           });
         }
         endex++;
-        console.info(`now at ${endex} in endParsed`);
       }
     };
     if (isLevelEquivilant(one, two)) {
       if (one == null || two == null) {
         throw new Error('equivilant nodes should not be null');
       }
-      console.info(`nodes were found to be level equivilant`);
       if (typeof one === 'string') {
         progress(one);
       } else {
@@ -255,7 +244,6 @@ export function diff(start: CodeTree, end: CodeTree) {
         progress(one.spans.at(-1) ?? '');
       }
     } else {
-      console.info(`nodes were NOT found to be level equivilant`);
       if (typeof one === 'string' && typeof two === 'string') {
         progress(one, two);
       } else if (typeof one === 'string') {
