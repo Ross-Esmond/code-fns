@@ -35,7 +35,7 @@ import { ready, language, parse } from './tags';
 
 await ready();
 const tsx = language.tsx;
-await parse(tsx`() => true`);
+parse(tsx`() => true`);
 ```
 
 This will generate the following output.
@@ -57,7 +57,7 @@ import { ready, language, parse } from './tags';
 await ready();
 const tsx = language.tsx;
 const generate = (result: string) => tsx`(${result});`;
-await parse(generate('false'));
+parse(generate('false'));
 ```
 
 ```tsx
@@ -76,7 +76,7 @@ import { ready, language, diff } from './tags';
 await ready();
 const tsx = language.tsx;
 const generate = (result: string) => tsx`(${result});`;
-await diff(generate('true'), generate('false'));
+diff(generate('true'), generate('false'));
 ```
 
 ```tsx
