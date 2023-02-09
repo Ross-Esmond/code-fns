@@ -12,6 +12,103 @@ test('highlights code', async () => {
   ]);
 });
 
+test('highlights numbers', async () => {
+  const code = tsx`5`;
+  await ready();
+  expect(parse(code)).toEqual([{ code: '5', color: '#79c0ff' }]);
+});
+
+test('highlights an operator', async () => {
+  const code = tsx`5+3`;
+  await ready();
+  expect(parse(code)).toEqual([
+    { code: '5', color: '#79c0ff' },
+    { code: '+', color: '#ff7b72' },
+    { code: '3', color: '#79c0ff' },
+  ]);
+});
+
+test('highlights a function declaration', async () => {
+  const code = tsx`function n(){}`;
+  await ready();
+  expect(parse(code)).toEqual([
+    { code: 'function', color: '#ff7b72' },
+    { code: ' ', color: '#c9d1d9' },
+    { code: 'n', color: '#d2a8ff' },
+    { code: '(){}', color: '#c9d1d9' },
+  ]);
+});
+
+test('highlights a variable declaration', async () => {
+  const code = tsx`var what;`;
+  await ready();
+  expect(parse(code)).toEqual([
+    { code: 'var', color: '#ff7b72' },
+    { code: ' ', color: '#c9d1d9' },
+    { code: 'what', color: '#c9d1d9' },
+    { code: ';', color: '#c9d1d9' },
+  ]);
+});
+
+test('highlights a parameter', async () => {
+  const code = tsx`function n(param){}`;
+  await ready();
+  expect(parse(code)).toEqual([
+    { code: 'function', color: '#ff7b72' },
+    { code: ' ', color: '#c9d1d9' },
+    { code: 'n', color: '#d2a8ff' },
+    { code: '(', color: '#c9d1d9' },
+    { code: 'param', color: '#ffa657' },
+    { code: '){}', color: '#c9d1d9' },
+  ]);
+});
+
+test('highlights a regular expression', async () => {
+  const code = tsx`/r/g`;
+  await ready();
+  expect(parse(code)).toEqual([
+    { code: '/', color: '#a5d6ff' },
+    { code: 'r', color: '#a5d6ff' },
+    { code: '/', color: '#a5d6ff' },
+    { code: 'g', color: '#ff7b72' },
+  ]);
+});
+
+test('highlights a string', async () => {
+  const code = tsx`'s'`;
+  await ready();
+  expect(parse(code)).toEqual([
+    { code: `'`, color: '#a5d6ff' },
+    { code: 's', color: '#a5d6ff' },
+    { code: `'`, color: '#a5d6ff' },
+  ]);
+});
+
+test('highlights a comment', async () => {
+  const code = tsx`/*c*/`;
+  await ready();
+  expect(parse(code)).toEqual([{ code: `/*c*/`, color: '#8b949e' }]);
+});
+
+describe('code style override', async () => {
+  test('override a string', async () => {
+    const code = tsx`'s'`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          stringContent: { text: '#ffeeee' },
+          stringPunctuation: { text: '#eeeeff' },
+        },
+      }),
+    ).toEqual([
+      { code: `'`, color: '#eeeeff' },
+      { code: 's', color: '#ffeeee' },
+      { code: `'`, color: '#eeeeff' },
+    ]);
+  });
+});
+
 describe('parse', () => {
   describe('undent', () => {
     test('keep', async () => {

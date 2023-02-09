@@ -1,0 +1,85 @@
+{
+  "pl-c2": ["carriage-return"],
+  "pl-s": ["string"],
+  "pl-bu": [
+    "brackethighlighter.unmatched",
+    "invalid.broken",
+    "invalid.deprecated",
+    "invalid.unimplemented",
+    "message.error",
+    "sublimelinter.mark.error"
+  ],
+  "pl-mi1": [
+    "markup.inserted",
+    "meta.diff.header.to-file",
+    "punctuation.definition.inserted"
+  ],
+  "pl-v": ["variable"],
+  "pl-mi2": ["markup.ignored", "markup.untracked"],
+  "pl-sg": ["sublimelinter.gutter-mark"],
+  "pl-mb": ["markup.bold"],
+  "pl-mc": ["markup.changed", "punctuation.definition.changed"],
+  "pl-md": [
+    "markup.deleted",
+    "meta.diff.header.from-file",
+    "punctuation.definition.deleted"
+  ],
+  "pl-mdr": ["meta.diff.range"],
+  "pl-smw": ["sublimelinter.mark.warning"],
+  "pl-mh": ["markup.heading"],
+  "pl-mi": ["markup.italic"],
+  "pl-pds": [
+    "punctuation.definition.string",
+    "source.regexp",
+    "string.regexp.character-class"
+  ],
+  "pl-s1": ["source"],
+  "pl-ba": [
+    "brackethighlighter.angle",
+    "brackethighlighter.curly",
+    "brackethighlighter.quote",
+    "brackethighlighter.round",
+    "brackethighlighter.square",
+    "brackethighlighter.tag"
+  ],
+  "pl-ml": ["markup.list"],
+  "pl-sr": ["string.regexp"],
+  "pl-ii": ["invalid.illegal"],
+  "pl-sra": ["string.regexp.arbitrary-repitition"],
+  "pl-pse": ["punctuation.section.embedded"],
+  "pl-c": ["comment", "punctuation.definition.comment", "string.comment"],
+  "pl-cce": ["constant.character.escape"],
+  "pl-e": ["entity"],
+  "pl-sre": ["source.ruby.embedded"],
+  "pl-corl": ["constant.other.reference.link", "string.other.link"],
+  "pl-ms": ["meta.separator"],
+  "pl-k": ["keyword", "storage", "storage.type"],
+  "pl-ent": ["entity.name.tag", "markup.quote"],
+  "pl-en": ["entity.name"],
+  "pl-kos": [
+    "keyword.operator.symbole",
+    "keyword.other.mark",
+    "string.unquoted.import.ada"
+  ],
+  "pl-smi": [
+    "storage.modifier.import",
+    "storage.modifier.package",
+    "storage.type.java",
+    "variable.other",
+    "variable.parameter.function"
+  ],
+  "pl-c1": [
+    "constant",
+    "entity.name.constant",
+    "markup.raw",
+    "meta.diff.header",
+    "meta.module-reference",
+    "meta.output",
+    "meta.property-name",
+    "support",
+    "support.constant",
+    "support.variable",
+    "variable.language",
+    "variable.other.constant"
+  ]
+}

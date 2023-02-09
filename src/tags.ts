@@ -1,6 +1,7 @@
 import { createStarryNight, all } from '@wooorm/starry-night';
 import style from './dark-style';
 import type { Root, RootContent } from 'hast';
+import type { CodeStyle } from './style';
 
 export interface StarryNight {
   flagToScope: (flag: string) => string | undefined;
@@ -53,7 +54,10 @@ export interface MorphToken extends Token {
   to: Location | null;
 }
 
-export function parse(code: CodeTree): Token[] {
+export function parse(
+  code: CodeTree,
+  options?: { codeStyle?: CodeStyle },
+): Token[] {
   const raw = integrate(reindent(code));
   if (starryNightCache == null) throw new Error(`you must await ready()`);
   const sn = starryNightCache;
@@ -63,7 +67,7 @@ export function parse(code: CodeTree): Token[] {
   }
   const parsed = sn.highlight(raw, scope);
   return parsed.children
-    .map(colorRecurse)
+    .map((child) => colorRecurse(child, options?.codeStyle ?? {}))
     .flat()
     .map(({ color, ...rest }) => ({
       ...rest,
@@ -75,16 +79,41 @@ const rules = new Map(
   Object.entries(style).map(([k, v]) => [k, new Map(Object.entries(v))]),
 );
 
-export function getColor(classList: string[]): string | undefined {
+const styleMap = new Map<string, keyof CodeStyle>([
+  ['pl-s', 'stringContent'],
+  ['pl-pds', 'stringPunctuation'],
+  ['pl-c', 'comment'],
+  ['pl-smi', 'variable'],
+  ['pl-v', 'parameter'],
+  ['pl-sr', 'regexpContent'],
+  ['pl-c1', 'literal'],
+  ['pl-k', 'keyword'],
+  ['pl-en', 'entityName'],
+]);
+
+export function getColor(
+  classList: string[],
+  codeStyle: CodeStyle,
+): string | undefined {
   console.assert(classList.length <= 1, `classList too long`);
-  const styles =
-    classList.length === 1 ? rules.get(`.${classList[0]}`) : new Map();
-  console.assert((styles?.size ?? 0) <= 1, `more styles than just color`);
-  const color = styles?.get('color');
-  return color;
+  if (classList.length === 1) {
+    const key = styleMap.get(classList[0]);
+    if (key == null) {
+      throw new Error(
+        `class name ${classList[0]} not recognized, please report your code to code-fns`,
+      );
+    }
+    if (codeStyle[key] != null) {
+      return codeStyle[key]?.text;
+    }
+    const styles = rules.get(`.${classList[0]}`);
+    console.assert((styles?.size ?? 0) <= 1, `more styles than just color`);
+    return styles?.get('color');
+  }
+  return undefined;
 }
 
-function colorRecurse(parsed: RootContent): Token[] {
+function colorRecurse(parsed: RootContent, codeStyle: CodeStyle): Token[] {
   if (parsed.type === 'text') {
     return [
       {
@@ -94,8 +123,10 @@ function colorRecurse(parsed: RootContent): Token[] {
     ];
   } else if (parsed.type === 'element') {
     const className = parsed.properties?.className;
-    const color = getColor((className ?? []) as string[]);
-    const children = parsed.children.map(colorRecurse);
+    const color = getColor((className ?? []) as string[], codeStyle);
+    const children = parsed.children.map((child) =>
+      colorRecurse(child, codeStyle),
+    );
     const result = [];
     const emit = () => {
       if (temp !== '') {
@@ -247,11 +278,15 @@ function tokens(chars: MorphToken[]): MorphToken[] {
   return result;
 }
 
-export function diff(start: CodeTree, end: CodeTree) {
+export function diff(
+  start: CodeTree,
+  end: CodeTree,
+  options?: { codeStyle?: CodeStyle },
+) {
   start = reindent(start);
   end = reindent(end);
-  const startParsed = chars(parse(start));
-  const endParsed = chars(parse(end));
+  const startParsed = chars(parse(start, options));
+  const endParsed = chars(parse(end, options));
   let index = 0;
   let endex = 0;
   const result: {
