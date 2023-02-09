@@ -98,12 +98,7 @@ export function getColor(
   console.assert(classList.length <= 1, `classList too long`);
   if (classList.length === 1) {
     const key = styleMap.get(classList[0]);
-    if (key == null) {
-      throw new Error(
-        `class name ${classList[0]} not recognized, please report your code to code-fns`,
-      );
-    }
-    if (codeStyle[key] != null) {
+    if (key != null && codeStyle[key] != null) {
       return codeStyle[key]?.text;
     }
     const styles = rules.get(`.${classList[0]}`);
