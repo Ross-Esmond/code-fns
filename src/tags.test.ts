@@ -1,5 +1,11 @@
 import { language, ready, parse, diff, toString } from './tags';
 import { describe, expect, test } from 'vitest';
+import createFetchMock from 'vitest-fetch-mock';
+import { vi } from 'vitest';
+
+const fetchMock = createFetchMock(vi);
+
+fetchMock.enableMocks();
 
 const tsx = language.tsx;
 

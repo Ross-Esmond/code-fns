@@ -1,8 +1,9 @@
-import { getHighlighter, Highlighter, IThemedToken } from 'shiki';
+import { getHighlighter, Highlighter, IThemedToken, setWasm } from 'shiki';
 import type { CodeStyle } from './style';
 
 let highlighter: Highlighter | null = null;
 export async function ready() {
+  setWasm(await fetch('https://esm.sh/vscode-oniguruma@1/release/onig.wasm'));
   highlighter = await getHighlighter({ theme: 'github-dark' });
 }
 
