@@ -1,17 +1,9 @@
-import { createStarryNight, all } from '@wooorm/starry-night';
-import style from './dark-style';
-import type { Root, RootContent } from 'hast';
+import { getHighlighter, Highlighter, IThemedToken } from 'shiki';
 import type { CodeStyle } from './style';
 
-export interface StarryNight {
-  flagToScope: (flag: string) => string | undefined;
-  highlight: (value: string, scope: string) => Root;
-}
-
-const starryNight = createStarryNight(all);
-let starryNightCache: StarryNight | null = null;
+let highlighter: Highlighter | null = null;
 export async function ready() {
-  starryNightCache = await starryNight;
+  highlighter = await getHighlighter({ theme: 'github-dark' });
 }
 
 export interface CodeTree {
@@ -59,103 +51,95 @@ export function parse(
   options?: { codeStyle?: CodeStyle },
 ): Token[] {
   const raw = integrate(reindent(code));
-  if (starryNightCache == null) throw new Error(`you must await ready()`);
-  const sn = starryNightCache;
-  const scope = sn.flagToScope(code.language);
-  if (typeof scope !== 'string') {
-    throw new Error(`language ${code.language} not found`);
+  if (highlighter == null) {
+    throw new Error('you must await ready() before parsing code');
   }
-  const parsed = sn.highlight(raw, scope);
-  return parsed.children
-    .map((child) => colorRecurse(child, options?.codeStyle ?? {}))
-    .flat()
-    .map(({ color, ...rest }) => ({
-      ...rest,
-      color: color === '' ? '#c9d1d9' : color,
-    }));
+  const parsed = highlighter.codeToThemedTokens(raw, code.language);
+  return parsed
+    .flatMap((line) =>
+      line.concat([
+        { content: '\n', explanation: [{ content: '\n', scopes: [] }] },
+      ]),
+    )
+    .flatMap((token) => maybeReplace(token, options?.codeStyle ?? {}))
+    .map((themed) => ({
+      code: themed.content,
+      color: themed.color || '#C9D1D9',
+    }))
+    .slice(0, -1);
 }
 
-const rules = new Map(
-  Object.entries(style).map(([k, v]) => [k, new Map(Object.entries(v))]),
-);
-
-const styleMap = new Map<string, keyof CodeStyle>([
-  ['pl-s', 'stringContent'],
-  ['pl-pds', 'stringPunctuation'],
-  ['pl-c', 'comment'],
-  ['pl-smi', 'variable'],
-  ['pl-v', 'parameter'],
-  ['pl-sr', 'regexpContent'],
-  ['pl-c1', 'literal'],
-  ['pl-k', 'keyword'],
-  ['pl-en', 'entityName'],
-]);
-
-export function getColor(
-  classList: string[],
+function getColor(
+  scopes: Array<{ scopeName: string }>,
   codeStyle: CodeStyle,
-): string | undefined {
-  console.assert(classList.length <= 1, `classList too long`);
-  if (classList.length === 1) {
-    const key = styleMap.get(classList[0]);
-    if (key != null && codeStyle[key] != null) {
-      return codeStyle[key]?.text;
-    }
-    const styles = rules.get(`.${classList[0]}`);
-    console.assert((styles?.size ?? 0) <= 1, `more styles than just color`);
-    return styles?.get('color');
+  fallback = '#C9D1D9',
+): string {
+  function hasScope(target: string) {
+    return scopes.some((scope) => scope.scopeName.startsWith(target));
   }
-  return undefined;
+  const isStringPunctuation = hasScope('punctuation.definition.string');
+  const isRegex = hasScope('string.regexp');
+  const isKeyword = hasScope('keyword');
+  const isString = hasScope('string');
+  const isVaraible = hasScope('variable');
+  const isParameter = hasScope('variable.parameter');
+  const isComment = hasScope('comment');
+  const isNumber = hasScope('constant.numeric');
+  const isBoolean = hasScope('constant.language.boolean');
+  const isStorageType = hasScope('storage.type');
+  const isEntityName = hasScope('entity.name');
+  if (isRegex && !isStringPunctuation && !isKeyword) {
+    return (
+      codeStyle.regexpContent?.text ??
+      codeStyle.regexp?.content ??
+      codeStyle.regexp?.text ??
+      fallback
+    );
+  } else if (isRegex && isStringPunctuation) {
+    return codeStyle.regexp?.brackets ?? codeStyle.regexp?.text ?? fallback;
+  } else if (isRegex && isKeyword) {
+    return codeStyle.regexp?.flags ?? codeStyle.regexp?.text ?? fallback;
+  } else if (isStringPunctuation) {
+    return codeStyle.stringPunctuation?.text ?? fallback;
+  } else if (isString) {
+    return codeStyle.stringContent?.text ?? fallback;
+  } else if (isParameter) {
+    return codeStyle.parameter?.text ?? fallback;
+  } else if (isVaraible) {
+    return codeStyle.variable?.text ?? fallback;
+  } else if (isComment) {
+    return codeStyle.comment?.text ?? fallback;
+  } else if (isNumber) {
+    return codeStyle.number?.text ?? codeStyle.literal?.text ?? fallback;
+  } else if (isBoolean) {
+    return codeStyle.boolean?.text ?? codeStyle.literal?.text ?? fallback;
+  } else if (isStorageType) {
+    return codeStyle.keyword?.text ?? fallback;
+  } else if (isEntityName) {
+    return codeStyle.entityName?.text ?? fallback;
+  } else {
+    return fallback;
+  }
 }
 
-function colorRecurse(parsed: RootContent, codeStyle: CodeStyle): Token[] {
-  if (parsed.type === 'text') {
-    return [
-      {
-        code: parsed.value,
-        color: '',
-      },
-    ];
-  } else if (parsed.type === 'element') {
-    const className = parsed.properties?.className;
-    const color = getColor((className ?? []) as string[], codeStyle);
-    const children = parsed.children.map((child) =>
-      colorRecurse(child, codeStyle),
-    );
-    const result = [];
-    const emit = () => {
-      if (temp !== '') {
-        if (color != '') {
-          result.push({
-            code: temp,
-            color,
-          });
-        } else {
-          result.push({
-            code: temp,
-            color: '',
-          });
-        }
-        temp = '';
-      }
-    };
-    let temp = '';
-    for (const child of children) {
-      for (const item of child) {
-        if (item.color === '') {
-          temp += item.code;
-        } else {
-          emit();
-          result.push(item);
-        }
-      }
-      emit();
-    }
-    emit();
-    return result;
-  } else {
-    throw new Error();
+function maybeReplace(
+  node: IThemedToken,
+  codeStyle: CodeStyle,
+): IThemedToken[] {
+  const result: IThemedToken[] = [];
+  for (const { content, scopes } of node.explanation ?? []) {
+    result.push({ content, color: getColor(scopes, codeStyle, node.color) });
   }
+  const aggregated: IThemedToken[] = [];
+  for (const { content, color } of result) {
+    const last = aggregated.at(-1);
+    if (last == null || last.color !== color) {
+      aggregated.push({ content, color });
+    } else {
+      last.content += content;
+    }
+  }
+  return aggregated;
 }
 
 export function toString(tokens: Token[]): string {

@@ -7,24 +7,24 @@ test('highlights code', async () => {
   const code = tsx`true;`;
   await ready();
   expect(parse(code)).toEqual([
-    { code: 'true', color: '#79c0ff' },
-    { code: ';', color: '#c9d1d9' },
+    { code: 'true', color: '#79B8FF' },
+    { code: ';', color: '#E1E4E8' },
   ]);
 });
 
 test('highlights numbers', async () => {
   const code = tsx`5`;
   await ready();
-  expect(parse(code)).toEqual([{ code: '5', color: '#79c0ff' }]);
+  expect(parse(code)).toEqual([{ code: '5', color: '#79B8FF' }]);
 });
 
 test('highlights an operator', async () => {
   const code = tsx`5+3`;
   await ready();
   expect(parse(code)).toEqual([
-    { code: '5', color: '#79c0ff' },
-    { code: '+', color: '#ff7b72' },
-    { code: '3', color: '#79c0ff' },
+    { code: '5', color: '#79B8FF' },
+    { code: '+', color: '#F97583' },
+    { code: '3', color: '#79B8FF' },
   ]);
 });
 
@@ -32,10 +32,10 @@ test('highlights a function declaration', async () => {
   const code = tsx`function n(){}`;
   await ready();
   expect(parse(code)).toEqual([
-    { code: 'function', color: '#ff7b72' },
-    { code: ' ', color: '#c9d1d9' },
-    { code: 'n', color: '#d2a8ff' },
-    { code: '(){}', color: '#c9d1d9' },
+    { code: 'function', color: '#F97583' },
+    { code: ' ', color: '#E1E4E8' },
+    { code: 'n', color: '#B392F0' },
+    { code: '(){}', color: '#E1E4E8' },
   ]);
 });
 
@@ -43,10 +43,8 @@ test('highlights a variable declaration', async () => {
   const code = tsx`var what;`;
   await ready();
   expect(parse(code)).toEqual([
-    { code: 'var', color: '#ff7b72' },
-    { code: ' ', color: '#c9d1d9' },
-    { code: 'what', color: '#c9d1d9' },
-    { code: ';', color: '#c9d1d9' },
+    { code: 'var', color: '#F97583' },
+    { code: ' what;', color: '#E1E4E8' },
   ]);
 });
 
@@ -54,12 +52,12 @@ test('highlights a parameter', async () => {
   const code = tsx`function n(param){}`;
   await ready();
   expect(parse(code)).toEqual([
-    { code: 'function', color: '#ff7b72' },
-    { code: ' ', color: '#c9d1d9' },
-    { code: 'n', color: '#d2a8ff' },
-    { code: '(', color: '#c9d1d9' },
-    { code: 'param', color: '#ffa657' },
-    { code: '){}', color: '#c9d1d9' },
+    { code: 'function', color: '#F97583' },
+    { code: ' ', color: '#E1E4E8' },
+    { code: 'n', color: '#B392F0' },
+    { code: '(', color: '#E1E4E8' },
+    { code: 'param', color: '#FFAB70' },
+    { code: '){}', color: '#E1E4E8' },
   ]);
 });
 
@@ -67,27 +65,23 @@ test('highlights a regular expression', async () => {
   const code = tsx`/r/g`;
   await ready();
   expect(parse(code)).toEqual([
-    { code: '/', color: '#a5d6ff' },
-    { code: 'r', color: '#a5d6ff' },
-    { code: '/', color: '#a5d6ff' },
-    { code: 'g', color: '#ff7b72' },
+    { code: '/', color: '#9ECBFF' },
+    { code: 'r', color: '#DBEDFF' },
+    { code: '/', color: '#9ECBFF' },
+    { code: 'g', color: '#F97583' },
   ]);
 });
 
 test('highlights a string', async () => {
   const code = tsx`'s'`;
   await ready();
-  expect(parse(code)).toEqual([
-    { code: `'`, color: '#a5d6ff' },
-    { code: 's', color: '#a5d6ff' },
-    { code: `'`, color: '#a5d6ff' },
-  ]);
+  expect(parse(code)).toEqual([{ code: `'s'`, color: '#9ECBFF' }]);
 });
 
 test('highlights a comment', async () => {
   const code = tsx`/*c*/`;
   await ready();
-  expect(parse(code)).toEqual([{ code: `/*c*/`, color: '#8b949e' }]);
+  expect(parse(code)).toEqual([{ code: `/*c*/`, color: '#6A737D' }]);
 });
 
 describe('code style override', async () => {
@@ -107,6 +101,178 @@ describe('code style override', async () => {
       { code: `'`, color: '#eeeeff' },
     ]);
   });
+
+  test('override a regex using deprecated syntax', async () => {
+    const code = tsx`/r/g`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          regexpContent: { text: '#ffeeff' },
+        },
+      }),
+    ).toEqual([
+      { code: `/`, color: '#9ECBFF' },
+      { code: `r`, color: '#ffeeff' },
+      { code: `/`, color: '#9ECBFF' },
+      { code: `g`, color: '#F97583' },
+    ]);
+  });
+
+  test('override a regex using a flat color', async () => {
+    const code = tsx`/r/g`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          regexp: { text: '#ffffff' },
+        },
+      }),
+    ).toEqual([
+      { code: `/`, color: '#ffffff' },
+      { code: `r`, color: '#ffffff' },
+      { code: `/`, color: '#ffffff' },
+      { code: `g`, color: '#ffffff' },
+    ]);
+  });
+
+  test('override a regex using a discrete colors', async () => {
+    const code = tsx`/r/g`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          regexp: { brackets: '#ffffff', content: '#ff0000', flags: '#0000ff' },
+        },
+      }),
+    ).toEqual([
+      { code: `/`, color: '#ffffff' },
+      { code: `r`, color: '#ff0000' },
+      { code: `/`, color: '#ffffff' },
+      { code: `g`, color: '#0000ff' },
+    ]);
+  });
+
+  test('override a variable declaration', async () => {
+    const code = tsx`let w`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          variable: { text: '#ff0000' },
+        },
+      }),
+    ).toEqual([
+      { code: `let`, color: '#F97583' },
+      { code: ` `, color: '#E1E4E8' },
+      { code: `w`, color: '#ff0000' },
+    ]);
+  });
+
+  test('override a parameter declaration', async () => {
+    const code = tsx`(p)=>null`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          parameter: { text: '#ff0000' },
+        },
+      }),
+    ).toEqual([
+      { code: `(`, color: '#E1E4E8' },
+      { code: `p`, color: '#ff0000' },
+      { code: `)`, color: '#E1E4E8' },
+      { code: `=>`, color: '#F97583' },
+      { code: `null`, color: '#79B8FF' },
+    ]);
+  });
+
+  test('override a comment', async () => {
+    const code = tsx`// c`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          comment: { text: '#ff0000' },
+        },
+      }),
+    ).toEqual([{ code: `// c`, color: '#ff0000' }]);
+  });
+
+  test('override a number literal using deprecated syntax', async () => {
+    const code = tsx`5`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          literal: { text: '#ff0000' },
+        },
+      }),
+    ).toEqual([{ code: `5`, color: '#ff0000' }]);
+  });
+
+  test('override a number literal', async () => {
+    const code = tsx`5`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          number: { text: '#ff0000' },
+        },
+      }),
+    ).toEqual([{ code: `5`, color: '#ff0000' }]);
+  });
+
+  test('override a boolean literal using deprecated syntax', async () => {
+    const code = tsx`true`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          literal: { text: '#ff0000' },
+        },
+      }),
+    ).toEqual([{ code: `true`, color: '#ff0000' }]);
+  });
+
+  test('override a boolean literal', async () => {
+    const code = tsx`true`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          boolean: { text: '#ff0000' },
+        },
+      }),
+    ).toEqual([{ code: `true`, color: '#ff0000' }]);
+  });
+
+  test('override a keyword', async () => {
+    const code = tsx`const`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          keyword: { text: '#ff0000' },
+        },
+      }),
+    ).toEqual([{ code: `const`, color: '#ff0000' }]);
+  });
+
+  test('override an entityName', async () => {
+    const code = tsx`en()`;
+    await ready();
+    expect(
+      parse(code, {
+        codeStyle: {
+          entityName: { text: '#ff0000' },
+        },
+      }),
+    ).toEqual([
+      { code: `en`, color: '#ff0000' },
+      { code: `()`, color: '#E1E4E8' },
+    ]);
+  });
 });
 
 describe('parse', () => {
@@ -119,11 +285,11 @@ describe('parse', () => {
         [
           {
             "code": "    ",
-            "color": "#c9d1d9",
+            "color": "#E1E4E8",
           },
           {
             "code": "true",
-            "color": "#79c0ff",
+            "color": "#79B8FF",
           },
         ]
       `);
@@ -138,7 +304,7 @@ describe('parse', () => {
         [
           {
             "code": "true",
-            "color": "#79c0ff",
+            "color": "#79B8FF",
           },
         ]
       `);
@@ -153,7 +319,7 @@ describe('parse', () => {
         [
           {
             "code": "true",
-            "color": "#79c0ff",
+            "color": "#79B8FF",
           },
         ]
       `);
@@ -215,19 +381,19 @@ function (${''}) {
       [
         {
           "code": "() ",
-          "color": "#c9d1d9",
+          "color": "#E1E4E8",
         },
         {
           "code": "=>",
-          "color": "#ff7b72",
+          "color": "#F97583",
         },
         {
           "code": " ",
-          "color": "#c9d1d9",
+          "color": "#E1E4E8",
         },
         {
           "code": "true",
-          "color": "#79c0ff",
+          "color": "#79B8FF",
         },
       ]
     `);
@@ -238,15 +404,15 @@ function (${''}) {
       [
         {
           "code": "(",
-          "color": "#c9d1d9",
+          "color": "#E1E4E8",
         },
         {
           "code": "false",
-          "color": "#79c0ff",
+          "color": "#79B8FF",
         },
         {
           "code": ");",
-          "color": "#c9d1d9",
+          "color": "#E1E4E8",
         },
       ]
     `);
@@ -256,7 +422,7 @@ function (${''}) {
       [
         {
           "code": "(",
-          "color": "#c9d1d9",
+          "color": "#E1E4E8",
           "from": [
             0,
             0,
@@ -269,7 +435,7 @@ function (${''}) {
         },
         {
           "code": "true",
-          "color": "#79c0ff",
+          "color": "#79B8FF",
           "from": [
             1,
             0,
@@ -279,7 +445,7 @@ function (${''}) {
         },
         {
           "code": "false",
-          "color": "#79c0ff",
+          "color": "#79B8FF",
           "from": null,
           "morph": "create",
           "to": [
@@ -289,7 +455,7 @@ function (${''}) {
         },
         {
           "code": ");",
-          "color": "#c9d1d9",
+          "color": "#E1E4E8",
           "from": [
             5,
             0,
@@ -313,14 +479,14 @@ describe('diff', () => {
     expect(diff(start, end)).toEqual([
       {
         code: 'true',
-        color: '#79c0ff',
+        color: '#79B8FF',
         morph: 'retain',
         from: [0, 0],
         to: [0, 0],
       },
       {
         code: ';',
-        color: '#c9d1d9',
+        color: '#E1E4E8',
         morph: 'retain',
         from: [4, 0],
         to: [4, 0],
@@ -335,21 +501,21 @@ describe('diff', () => {
     expect(diff(start, end)).toEqual([
       {
         code: 'true',
-        color: '#79c0ff',
+        color: '#79B8FF',
         morph: 'delete',
         from: [0, 0],
         to: null,
       },
       {
         code: 'false',
-        color: '#79c0ff',
+        color: '#79B8FF',
         morph: 'create',
         from: null,
         to: [0, 0],
       },
       {
         code: ';',
-        color: '#c9d1d9',
+        color: '#E1E4E8',
         morph: 'retain',
         from: [4, 0],
         to: [5, 0],
@@ -364,21 +530,21 @@ describe('diff', () => {
     expect(diff(start, end)).toEqual([
       {
         code: 'true',
-        color: '#79c0ff',
+        color: '#79B8FF',
         morph: 'delete',
         from: [0, 0],
         to: null,
       },
       {
         code: 'false',
-        color: '#79c0ff',
+        color: '#79B8FF',
         morph: 'create',
         from: null,
         to: [0, 0],
       },
       {
         code: ';',
-        color: '#c9d1d9',
+        color: '#E1E4E8',
         morph: 'retain',
         from: [4, 0],
         to: [5, 0],
@@ -393,21 +559,21 @@ describe('diff', () => {
     expect(diff(start, end)).toEqual([
       {
         code: 'true',
-        color: '#79c0ff',
+        color: '#79B8FF',
         morph: 'delete',
         from: [0, 0],
         to: null,
       },
       {
         code: 'true',
-        color: '#79c0ff',
+        color: '#79B8FF',
         morph: 'create',
         from: null,
         to: [0, 0],
       },
       {
         code: ';',
-        color: '#c9d1d9',
+        color: '#E1E4E8',
         morph: 'retain',
         from: [4, 0],
         to: [4, 0],
@@ -422,21 +588,21 @@ describe('diff', () => {
     expect(diff(start, end)).toEqual([
       {
         code: 'foo',
-        color: '#c9d1d9',
+        color: '#E1E4E8',
         morph: 'retain',
         from: [0, 0],
         to: [0, 0],
       },
       {
         code: 'bar',
-        color: '#c9d1d9',
+        color: '#E1E4E8',
         morph: 'delete',
         from: [3, 0],
         to: null,
       },
       {
         code: 'baz',
-        color: '#c9d1d9',
+        color: '#E1E4E8',
         morph: 'create',
         from: null,
         to: [3, 0],
@@ -451,23 +617,23 @@ describe('diff', () => {
     expect(diff(start, end)).toEqual([
       {
         code: '1',
-        color: '#79c0ff',
+        color: '#79B8FF',
         morph: 'retain',
         from: [0, 0],
         to: [0, 0],
       },
       {
         code: '+',
-        color: '#ff7b72',
+        color: '#F97583',
         morph: 'retain',
         from: [1, 0],
         to: [1, 0],
       },
-      { code: '2', color: '#79c0ff', morph: 'delete', from: [2, 0], to: null },
-      { code: '3', color: '#79c0ff', morph: 'create', from: null, to: [2, 0] },
+      { code: '2', color: '#79B8FF', morph: 'delete', from: [2, 0], to: null },
+      { code: '3', color: '#79B8FF', morph: 'create', from: null, to: [2, 0] },
       {
         code: ';',
-        color: '#c9d1d9',
+        color: '#E1E4E8',
         morph: 'retain',
         from: [3, 0],
         to: [3, 0],
@@ -493,7 +659,7 @@ describe('diff', () => {
       [
         {
           "code": "{",
-          "color": "#c9d1d9",
+          "color": "#E1E4E8",
           "from": [
             0,
             0,
@@ -506,7 +672,7 @@ describe('diff', () => {
         },
         {
           "code": "true",
-          "color": "#79c0ff",
+          "color": "#79B8FF",
           "from": [
             2,
             1,
@@ -516,7 +682,7 @@ describe('diff', () => {
         },
         {
           "code": "false",
-          "color": "#79c0ff",
+          "color": "#79B8FF",
           "from": null,
           "morph": "create",
           "to": [
@@ -526,7 +692,7 @@ describe('diff', () => {
         },
         {
           "code": "}",
-          "color": "#c9d1d9",
+          "color": "#E1E4E8",
           "from": [
             0,
             2,
