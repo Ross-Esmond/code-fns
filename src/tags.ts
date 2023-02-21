@@ -1,5 +1,13 @@
-import { getHighlighter, Highlighter, IThemedToken, setWasm } from 'shiki';
+import {
+  getHighlighter,
+  Highlighter,
+  IThemedToken,
+  setWasm,
+  setCDN,
+} from 'shiki';
 import type { CodeStyle } from './style';
+
+setCDN('https://esm.sh/shiki@latest/');
 
 let highlighter: Highlighter | null = null;
 export async function ready() {
