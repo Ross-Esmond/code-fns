@@ -33,7 +33,7 @@ language, and `parse` to highlight it.
 ```tsx
 import { ready, language, parse } from './tags';
 
-await ready();
+await ready(['tsx']);
 const tsx = language.tsx;
 parse(tsx`() => true`);
 ```
@@ -54,7 +54,7 @@ You may then use templating to generate your code dynamically.
 ```tsx
 import { ready, language, parse } from './tags';
 
-await ready();
+await ready(['tsx']);
 const tsx = language.tsx;
 const generate = (result: string) => tsx`(${result});`;
 parse(generate('false'));
@@ -73,7 +73,7 @@ To compute the difference between two generated chunks of code, use `diff`.
 ```tsx
 import { ready, language, diff } from './tags';
 
-await ready();
+await ready(['tsx']);
 const tsx = language.tsx;
 const generate = (result: string) => tsx`(${result});`;
 diff(generate('true'), generate('false'));

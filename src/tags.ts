@@ -1,18 +1,20 @@
-import {
-  getHighlighter,
-  Highlighter,
-  IThemedToken,
-  setWasm,
-  setCDN,
-} from 'shiki';
+import { getHighlighter, Highlighter, IThemedToken, setCDN, Lang } from 'shiki';
 import type { CodeStyle } from './style';
 
 setCDN('https://esm.sh/shiki@latest/');
 
 let highlighter: Highlighter | null = null;
-export async function ready() {
-  setWasm(await fetch('https://esm.sh/vscode-oniguruma@1/release/onig.wasm'));
-  highlighter = await getHighlighter({ theme: 'github-dark' });
+export async function ready(languages: Lang[] = []) {
+  if (highlighter == null) {
+    highlighter = await getHighlighter({
+      theme: 'github-dark',
+      langs: languages,
+    });
+  } else {
+    for (const language of languages) {
+      await highlighter.loadLanguage(language);
+    }
+  }
 }
 
 export interface CodeTree {
