@@ -72,10 +72,12 @@ export interface MorphToken extends Token {
   to: Location | null;
 }
 
-export function parse(
-  code: CodeTree,
-  options?: { codeStyle?: CodeStyle; theme?: Theme },
-): Token[] {
+export interface ParseOptions {
+  codeStyle?: CodeStyle;
+  theme?: Theme;
+}
+
+export function parse(code: CodeTree, options?: ParseOptions): Token[] {
   const raw = integrate(reindent(code));
   if (highlighter == null) {
     throw new Error('you must await ready() before parsing code');
@@ -287,11 +289,7 @@ function tokens(chars: MorphToken[]): MorphToken[] {
   return result;
 }
 
-export function diff(
-  start: CodeTree,
-  end: CodeTree,
-  options?: { codeStyle?: CodeStyle },
-) {
+export function diff(start: CodeTree, end: CodeTree, options?: ParseOptions) {
   start = reindent(start);
   end = reindent(end);
   const startParsed = chars(parse(start, options));
