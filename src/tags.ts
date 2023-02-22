@@ -1,18 +1,31 @@
-import { getHighlighter, Highlighter, IThemedToken, setCDN, Lang } from 'shiki';
+import {
+  getHighlighter,
+  Highlighter,
+  IThemedToken,
+  setCDN,
+  Lang,
+  Theme,
+} from 'shiki';
 import type { CodeStyle } from './style';
 
 setCDN('https://esm.sh/shiki@latest/');
 
 let highlighter: Highlighter | null = null;
-export async function ready(languages: Lang[] = []) {
+export async function ready(options?: {
+  languages?: Lang[];
+  themes?: Theme[];
+}) {
   if (highlighter == null) {
     highlighter = await getHighlighter({
-      theme: 'github-dark',
-      langs: languages,
+      themes: ['github-dark'].concat(options?.themes ?? []),
+      langs: options?.languages ?? [],
     });
   } else {
-    for (const language of languages) {
+    for (const language of options?.languages ?? []) {
       await highlighter.loadLanguage(language);
+    }
+    for (const theme of options?.themes ?? []) {
+      await highlighter.loadTheme(theme);
     }
   }
 }
@@ -59,13 +72,17 @@ export interface MorphToken extends Token {
 
 export function parse(
   code: CodeTree,
-  options?: { codeStyle?: CodeStyle },
+  options?: { codeStyle?: CodeStyle; theme?: Theme },
 ): Token[] {
   const raw = integrate(reindent(code));
   if (highlighter == null) {
     throw new Error('you must await ready() before parsing code');
   }
-  const parsed = highlighter.codeToThemedTokens(raw, code.language);
+  const parsed = highlighter.codeToThemedTokens(
+    raw,
+    code.language,
+    options?.theme ?? 'github-dark',
+  );
   return parsed
     .flatMap((line) =>
       line.concat([

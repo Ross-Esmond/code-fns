@@ -5,7 +5,7 @@ const tsx = language.tsx;
 
 test('highlights code', async () => {
   const code = tsx`true;`;
-  await ready(['tsx']);
+  await ready({ languages: ['tsx'] });
   expect(parse(code)).toEqual([
     { code: 'true', color: '#79B8FF' },
     { code: ';', color: '#E1E4E8' },
@@ -14,13 +14,13 @@ test('highlights code', async () => {
 
 test('highlights numbers', async () => {
   const code = tsx`5`;
-  await ready(['tsx']);
+  await ready({ languages: ['tsx'] });
   expect(parse(code)).toEqual([{ code: '5', color: '#79B8FF' }]);
 });
 
 test('highlights an operator', async () => {
   const code = tsx`5+3`;
-  await ready(['tsx']);
+  await ready({ languages: ['tsx'] });
   expect(parse(code)).toEqual([
     { code: '5', color: '#79B8FF' },
     { code: '+', color: '#F97583' },
@@ -30,7 +30,7 @@ test('highlights an operator', async () => {
 
 test('highlights a function declaration', async () => {
   const code = tsx`function n(){}`;
-  await ready(['tsx']);
+  await ready({ languages: ['tsx'] });
   expect(parse(code)).toEqual([
     { code: 'function', color: '#F97583' },
     { code: ' ', color: '#E1E4E8' },
@@ -41,7 +41,7 @@ test('highlights a function declaration', async () => {
 
 test('highlights a variable declaration', async () => {
   const code = tsx`var what;`;
-  await ready(['tsx']);
+  await ready({ languages: ['tsx'] });
   expect(parse(code)).toEqual([
     { code: 'var', color: '#F97583' },
     { code: ' what;', color: '#E1E4E8' },
@@ -50,7 +50,7 @@ test('highlights a variable declaration', async () => {
 
 test('highlights a parameter', async () => {
   const code = tsx`function n(param){}`;
-  await ready(['tsx']);
+  await ready({ languages: ['tsx'] });
   expect(parse(code)).toEqual([
     { code: 'function', color: '#F97583' },
     { code: ' ', color: '#E1E4E8' },
@@ -63,7 +63,7 @@ test('highlights a parameter', async () => {
 
 test('highlights a regular expression', async () => {
   const code = tsx`/r/g`;
-  await ready(['tsx']);
+  await ready({ languages: ['tsx'] });
   expect(parse(code)).toEqual([
     { code: '/', color: '#9ECBFF' },
     { code: 'r', color: '#DBEDFF' },
@@ -74,20 +74,20 @@ test('highlights a regular expression', async () => {
 
 test('highlights a string', async () => {
   const code = tsx`'s'`;
-  await ready(['tsx']);
+  await ready({ languages: ['tsx'] });
   expect(parse(code)).toEqual([{ code: `'s'`, color: '#9ECBFF' }]);
 });
 
 test('highlights a comment', async () => {
   const code = tsx`/*c*/`;
-  await ready(['tsx']);
+  await ready({ languages: ['tsx'] });
   expect(parse(code)).toEqual([{ code: `/*c*/`, color: '#6A737D' }]);
 });
 
 describe('code style override', async () => {
   test('override a string', async () => {
     const code = tsx`'s'`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -104,7 +104,7 @@ describe('code style override', async () => {
 
   test('override a regex using deprecated syntax', async () => {
     const code = tsx`/r/g`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -121,7 +121,7 @@ describe('code style override', async () => {
 
   test('override a regex using a flat color', async () => {
     const code = tsx`/r/g`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -138,7 +138,7 @@ describe('code style override', async () => {
 
   test('override a regex using a discrete colors', async () => {
     const code = tsx`/r/g`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -155,7 +155,7 @@ describe('code style override', async () => {
 
   test('override a variable declaration', async () => {
     const code = tsx`let w`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -171,7 +171,7 @@ describe('code style override', async () => {
 
   test('override a parameter declaration', async () => {
     const code = tsx`(p)=>null`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -189,7 +189,7 @@ describe('code style override', async () => {
 
   test('override a comment', async () => {
     const code = tsx`// c`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -201,7 +201,7 @@ describe('code style override', async () => {
 
   test('override a number literal using deprecated syntax', async () => {
     const code = tsx`5`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -213,7 +213,7 @@ describe('code style override', async () => {
 
   test('override a number literal', async () => {
     const code = tsx`5`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -225,7 +225,7 @@ describe('code style override', async () => {
 
   test('override a boolean literal using deprecated syntax', async () => {
     const code = tsx`true`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -237,7 +237,7 @@ describe('code style override', async () => {
 
   test('override a boolean literal', async () => {
     const code = tsx`true`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -249,7 +249,7 @@ describe('code style override', async () => {
 
   test('override a keyword', async () => {
     const code = tsx`const`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -261,7 +261,7 @@ describe('code style override', async () => {
 
   test('override an entityName', async () => {
     const code = tsx`en()`;
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -278,7 +278,7 @@ describe('code style override', async () => {
 describe('parse', () => {
   describe('undent', () => {
     test('keep', async () => {
-      await ready(['tsx']);
+      await ready({ languages: ['tsx'] });
       const tsx = language.tsx;
       const result = parse(tsx`    true`);
       expect(result).toMatchInlineSnapshot(`
@@ -296,7 +296,7 @@ describe('parse', () => {
     });
 
     test('fix', async () => {
-      await ready(['tsx']);
+      await ready({ languages: ['tsx'] });
       const tsx = language.tsx;
       const result = parse(tsx`
         true`);
@@ -311,7 +311,7 @@ describe('parse', () => {
     });
 
     test('template', async () => {
-      await ready(['tsx']);
+      await ready({ languages: ['tsx'] });
       const tsx = language.tsx;
       const result = parse(tsx`
         ${'true'}`);
@@ -326,7 +326,7 @@ describe('parse', () => {
     });
 
     test('replacement', async () => {
-      await ready(['tsx']);
+      await ready({ languages: ['tsx'] });
       const tsx = language.tsx;
       const replacement = `
         true`;
@@ -342,7 +342,7 @@ describe('parse', () => {
     });
 
     test('replacement with indentation', async () => {
-      await ready(['tsx']);
+      await ready({ languages: ['tsx'] });
       const tsx = language.tsx;
       const replacement = `true`;
       const result = parse(tsx`
@@ -355,7 +355,7 @@ describe('parse', () => {
     });
 
     test('reindents nested code', async () => {
-      await ready(['tsx']);
+      await ready({ languages: ['tsx'] });
       const tsx = language.tsx;
       const body = tsx`
 some();
@@ -374,7 +374,7 @@ function (${''}) {
   });
 
   test('README', async () => {
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     const tsx = language.tsx;
     const result = parse(tsx`() => true`);
     expect(result).toMatchInlineSnapshot(`
@@ -473,7 +473,7 @@ function (${''}) {
 
 describe('diff', () => {
   test('equal inputs', async () => {
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     const start = tsx`true;`;
     const end = tsx`true;`;
     expect(diff(start, end)).toEqual([
@@ -495,7 +495,7 @@ describe('diff', () => {
   });
 
   test('different inputs', async () => {
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     const start = tsx`${'true'};`;
     const end = tsx`${'false'};`;
     expect(diff(start, end)).toEqual([
@@ -524,7 +524,7 @@ describe('diff', () => {
   });
 
   test('nested inputs', async () => {
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     const start = tsx`${tsx`true`};`;
     const end = tsx`${tsx`false`};`;
     expect(diff(start, end)).toEqual([
@@ -553,7 +553,7 @@ describe('diff', () => {
   });
 
   test('tagged vs string', async () => {
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     const start = tsx`${'true'};`;
     const end = tsx`${tsx`true`};`;
     expect(diff(start, end)).toEqual([
@@ -582,7 +582,7 @@ describe('diff', () => {
   });
 
   test('partial token mismatch', async () => {
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     const start = tsx`foo${'bar'}`;
     const end = tsx`foo${'baz'}`;
     expect(diff(start, end)).toEqual([
@@ -611,7 +611,7 @@ describe('diff', () => {
   });
 
   test('recursive', async () => {
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     const start = tsx`${tsx`1+${tsx`2`}`};`;
     const end = tsx`${tsx`1+${tsx`3`}`};`;
     expect(diff(start, end)).toEqual([
@@ -642,7 +642,7 @@ describe('diff', () => {
   });
 
   test('indented', async () => {
-    await ready(['tsx']);
+    await ready({ languages: ['tsx'] });
     const truthy = tsx`
       true`;
     const falsy = tsx`
@@ -705,5 +705,15 @@ describe('diff', () => {
         },
       ]
     `);
+  });
+});
+
+describe('theme', () => {
+  test('highlights code with the nord theme', async () => {
+    const code = tsx`true;`;
+    await ready({ languages: ['tsx'], themes: ['nord'] });
+    expect(parse(code, { theme: 'nord' })).toEqual([
+      { code: 'true;', color: '#81A1C1' },
+    ]);
   });
 });
