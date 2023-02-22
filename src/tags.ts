@@ -8,6 +8,8 @@ import {
 } from 'shiki';
 import type { CodeStyle } from './style';
 
+export type { Theme, Lang } from 'shiki';
+
 setCDN('https://esm.sh/shiki@latest/');
 
 let highlighter: Highlighter | null = null;
