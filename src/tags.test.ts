@@ -5,7 +5,6 @@ const tsx = language.tsx;
 
 const blue = '#79c0ff';
 const greyBlue = '#c9d1d9';
-const brightBlue = '#a5d6ff';
 const midtone = '#8b949e';
 const lightRed = '#ff7b72';
 const violet = '#d2a8ff';
@@ -517,6 +516,28 @@ describe('diff', () => {
         morph: 'retain',
         from: [4, 0],
         to: [5, 0],
+      },
+    ]);
+  });
+
+  test('double width characters', async () => {
+    await ready();
+    const start = tsx`${'한'};`;
+    const end = tsx`${''};`;
+    expect(diff(start, end)).toEqual([
+      {
+        code: '한',
+        color: greyBlue,
+        morph: 'delete',
+        from: [0, 0],
+        to: null,
+      },
+      {
+        code: ';',
+        color: greyBlue,
+        morph: 'retain',
+        from: [2, 0],
+        to: [0, 0],
       },
     ]);
   });

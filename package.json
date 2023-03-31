@@ -22,7 +22,7 @@
     "highlighting"
   ],
   "scripts": {
-    "test": "vitest run --silent",
+    "test": "vitest run",
     "test:watch": "vitest --ui",
     "dev": "vite",
     "build": "rm -rf lib && npm run babel:esm && npm run babel:cjs && npm run types",
@@ -42,6 +42,7 @@
     "@babel/preset-env": "^7.19.0",
     "@babel/preset-typescript": "^7.18.6",
     "@types/css": "^0.0.33",
+    "@types/wcwidth": "^1.0.0",
     "@typescript-eslint/eslint-plugin": "^5.36.1",
     "@typescript-eslint/parser": "^5.36.1",
     "@vitest/coverage-c8": "^0.22.1",
@@ -62,6 +63,7 @@
   },
   "dependencies": {
     "@wooorm/starry-night": "^2.0.0",
-    "hast": "^1.0.0"
+    "hast": "^1.0.0",
+    "wcwidth": "^1.0.1"
   }
 }
