@@ -79,6 +79,15 @@ export function parse(
     }));
 }
 
+function hasCjk(char: string) {
+  let length = 0;
+  const result = char.match(
+    /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/,
+  );
+  if (result) length = result.length;
+  return length > 0;
+}
+
 const rules = new Map(
   Object.entries(style).map(([k, v]) => [k, new Map(Object.entries(v))]),
 );
@@ -408,14 +417,22 @@ export function diff(start: CodeTree, end: CodeTree, options?: ParseOptions) {
       if (morph !== 'create') {
         sat = 0;
         sln++;
+        if (hasCjk(code)) sln++;
       }
       if (morph !== 'delete') {
         eat = 0;
         eln++;
+        if (hasCjk(code)) eln++;
       }
     } else {
-      if (morph !== 'create') sat++;
-      if (morph !== 'delete') eat++;
+      if (morph !== 'create') {
+        sat++;
+        if (hasCjk(code)) sat++;
+      }
+      if (morph !== 'delete') {
+        eat++;
+        if (hasCjk(code)) eat++;
+      }
     }
     return value;
   });
