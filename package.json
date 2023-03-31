@@ -55,12 +55,13 @@
     "vite": "^3.0.7",
     "vitest": "^0.22.1"
   },
-  "dependencies": {
-    "shiki": "^0.14.1"
-  },
   "prettier": {
     "singleQuote": true,
     "printWidth": 80,
     "trailingComma": "all"
+  },
+  "dependencies": {
+    "@wooorm/starry-night": "^2.0.0",
+    "hast": "^1.0.0"
   }
 }

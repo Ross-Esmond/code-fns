@@ -27,13 +27,13 @@ ensures that you may configure your build as you wish.
 
 ## Usage
 
-To parse code into highlighted tokens, use `language.lang-name` to select your
+To parse code into highlighted tokens, use `language.langName` to select your
 language, and `parse` to highlight it.
 
 ```tsx
 import { ready, language, parse } from './tags';
 
-await ready({ languages: ['tsx'] });
+await ready();
 const tsx = language.tsx;
 parse(tsx`() => true`);
 ```
@@ -54,7 +54,7 @@ You may then use templating to generate your code dynamically.
 ```tsx
 import { ready, language, parse } from './tags';
 
-await ready({ languages: ['tsx'] });
+await ready();
 const tsx = language.tsx;
 const generate = (result: string) => tsx`(${result});`;
 parse(generate('false'));
@@ -73,7 +73,7 @@ To compute the difference between two generated chunks of code, use `diff`.
 ```tsx
 import { ready, language, diff } from './tags';
 
-await ready({ languages: ['tsx'] });
+await ready();
 const tsx = language.tsx;
 const generate = (result: string) => tsx`(${result});`;
 diff(generate('true'), generate('false'));

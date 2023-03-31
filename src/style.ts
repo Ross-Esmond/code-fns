@@ -72,35 +72,12 @@ export interface CodeStyle {
     flags?: string;
   };
   /**
-   * @deprecated Use {@link regexp} instead
-   * The colors for a Regular Expression's content.
-   * ```ts
-   * /regex/g // "regex" is the content
-   * ```
-   */
-  regexpContent?: Colors;
-  /**
-   * @deprecated Use {@link number} or {@link boolean} instead
    * The colors for a literal value, like "true" or "5".
    * ```ts
    * true
    * ```
    */
   literal?: Colors;
-  /**
-   * The colors for a literal number
-   * ```ts
-   * 5
-   * ```
-   */
-  number?: Colors;
-  /**
-   * The colors for a literal boolean
-   * ```ts
-   * true
-   * ```
-   */
-  boolean?: Colors;
   /**
    * The colors for a language keyword, like `function`.
    */
