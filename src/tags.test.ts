@@ -1,5 +1,6 @@
 import { language, ready, parse, diff, toString } from './tags';
 import { describe, expect, test } from 'vitest';
+import { CodeStyle } from './style';
 
 const tsx = language.tsx;
 
@@ -10,6 +11,22 @@ const lightRed = '#ff7b72';
 const violet = '#d2a8ff';
 const orange = '#ffa657';
 const lightBlue = '#a5d6ff';
+const pink = '#ff0000';
+const green = '#7ee787';
+
+const allPink: CodeStyle = {
+  base: { text: pink },
+  comment: { text: pink },
+  entityName: { text: pink },
+  keyword: { text: pink },
+  literal: { text: pink },
+  parameter: { text: pink },
+  regexp: { text: pink },
+  stringContent: { text: pink },
+  stringPunctuation: { text: pink },
+  variable: { text: pink },
+  entityNameTag: { text: pink },
+};
 
 test('highlights code', async () => {
   const code = tsx`true;`;
@@ -98,7 +115,26 @@ test('highlights a comment', async () => {
   expect(parse(code)).toEqual([{ code: `/*c*/`, color: midtone }]);
 });
 
+test('highlights svelte', async () => {
+  const code = language.svelte`<p/>`;
+  await ready();
+  expect(parse(code)).toEqual([
+    { code: `<`, color: greyBlue },
+    { code: `p`, color: green },
+    { code: `/>`, color: greyBlue },
+  ]);
+});
+
 describe('code style override', async () => {
+  test('overrides the base color', async () => {
+    const code = language.tsx`true;`;
+    await ready();
+    expect(parse(code, { codeStyle: allPink })).toEqual([
+      { code: `true`, color: pink },
+      { code: `;`, color: pink },
+    ]);
+  });
+
   test('override a string', async () => {
     const code = tsx`'s'`;
     await ready();
@@ -268,6 +304,16 @@ describe('code style override', async () => {
     ).toEqual([
       { code: `en`, color: '#ff0000' },
       { code: `()`, color: greyBlue },
+    ]);
+  });
+
+  test('overrides entity name tag', async () => {
+    const code = language.svelte`<p/>`;
+    await ready();
+    expect(parse(code, { codeStyle: allPink })).toEqual([
+      { code: `<`, color: pink },
+      { code: `p`, color: pink },
+      { code: `/>`, color: pink },
     ]);
   });
 });

@@ -102,6 +102,7 @@ const styleMap: Array<[string[], (s: CodeStyle) => string | undefined]> = [
   [['pl-c1'], (s: CodeStyle) => s.literal?.text],
   [['pl-k'], (s: CodeStyle) => s.keyword?.text],
   [['pl-en'], (s: CodeStyle) => s.entityName?.text],
+  [['pl-ent'], (s: CodeStyle) => s.entityNameTag?.text],
 ];
 
 function findAssociated<V>(
@@ -157,7 +158,7 @@ function colorRecurse(
     return [
       {
         code: parsed.value,
-        color: '',
+        color: codeStyle.base?.text ?? '',
       },
     ];
   } else if (parsed.type === 'element') {

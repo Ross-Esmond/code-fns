@@ -4,6 +4,13 @@ export type Colors = {
 
 export interface CodeStyle {
   /**
+   * The colors for any characters not covered by any other option.
+   * ```ts
+   * let a = 5; // both "=" and "5" will receive the `base` color
+   * ```
+   */
+  base?: Colors;
+  /**
    * The colors for a string's contents.
    * ```ts
    * `some string` // "some string" is the content; the `` are not.
@@ -89,4 +96,11 @@ export interface CodeStyle {
    * ```
    */
   entityName?: Colors;
+  /**
+   * The colors for an entity name tag, like an HTML or Svelte tag.
+   * ```ts
+   * <hr /> <!-- "hr" is an entity name tag -->
+   * ```
+   */
+  entityNameTag?: Colors;
 }
