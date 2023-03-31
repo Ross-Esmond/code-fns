@@ -117,23 +117,6 @@ describe('code style override', async () => {
     ]);
   });
 
-  test('override a regex using deprecated syntax', async () => {
-    const code = tsx`/r/g`;
-    await ready();
-    expect(
-      parse(code, {
-        codeStyle: {
-          regexpContent: { text: '#ffeeff' },
-        },
-      }),
-    ).toEqual([
-      { code: `/`, color: brightBlue },
-      { code: `r`, color: '#ffeeff' },
-      { code: `/`, color: brightBlue },
-      { code: `g`, color: lightRed },
-    ]);
-  });
-
   test('override a regex using a flat color', async () => {
     const code = tsx`/r/g`;
     await ready();

@@ -89,11 +89,7 @@ const styleMap: Array<[string[], (s: CodeStyle) => string | undefined]> = [
   [['pl-c'], (s: CodeStyle) => s.comment?.text],
   [['pl-smi'], (s: CodeStyle) => s.variable?.text],
   [['pl-v'], (s: CodeStyle) => s.parameter?.text],
-  [
-    ['pl-s', 'pl-sr'],
-    (s: CodeStyle) =>
-      s.regexp?.content ?? s.regexpContent?.text ?? s.regexp?.text,
-  ],
+  [['pl-s', 'pl-sr'], (s: CodeStyle) => s.regexp?.content ?? s.regexp?.text],
   [
     ['pl-s', 'pl-sr', 'pl-pds'],
     (s: CodeStyle) => s.regexp?.brackets ?? s.regexp?.text,
