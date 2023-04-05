@@ -36,25 +36,28 @@
     "coverage": "vitest run --coverage",
     "prepare": "husky install"
   },
+  "peerDependency": {
+    "vite": "*"
+  },
   "devDependencies": {
     "@babel/cli": "^7.18.10",
     "@babel/core": "^7.19.0",
     "@babel/preset-env": "^7.19.0",
     "@babel/preset-typescript": "^7.18.6",
+    "@types/codemirror": "^5.60.7",
     "@types/css": "^0.0.33",
     "@types/wcwidth": "^1.0.0",
     "@typescript-eslint/eslint-plugin": "^5.36.1",
     "@typescript-eslint/parser": "^5.36.1",
-    "@vitest/coverage-c8": "^0.22.1",
+    "@vitest/coverage-c8": "^0.29.8",
     "@vitest/ui": "^0.22.1",
-    "css": "^3.0.0",
     "eslint": "^8.23.0",
     "eslint-plugin-tsdoc": "^0.2.16",
     "husky": "^8.0.1",
     "prettier": "^2.7.1",
     "typescript": "^4.6.4",
     "vite": "^3.0.7",
-    "vitest": "^0.22.1"
+    "vitest": "^0.29.8"
   },
   "prettier": {
     "singleQuote": true,
@@ -63,6 +66,8 @@
   },
   "dependencies": {
     "@wooorm/starry-night": "^2.0.0",
+    "codemirror": "^5.65.12",
+    "css": "^3.0.0",
     "hast": "^1.0.0",
     "wcwidth": "^1.0.1"
   }

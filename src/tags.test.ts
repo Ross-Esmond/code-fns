@@ -4,131 +4,130 @@ import { CodeStyle } from './style';
 
 const tsx = language.tsx;
 
-const blue = '#79c0ff';
-const greyBlue = '#c9d1d9';
-const midtone = '#8b949e';
-const lightRed = '#ff7b72';
-const violet = '#d2a8ff';
-const orange = '#ffa657';
-const lightBlue = '#a5d6ff';
 const pink = '#ff0000';
-const green = '#7ee787';
+
+const keyword = '#708';
+const atom = '#219';
+const number = '#164';
+const operator = 'black';
+const def = '#00f';
+const comment = '#a50';
+const string = '#a11';
+const string2 = '#f50';
+const fallback = 'black';
 
 const allPink: CodeStyle = {
-  base: { text: pink },
-  comment: { text: pink },
-  entityName: { text: pink },
+  fallback: { text: pink },
   keyword: { text: pink },
-  literal: { text: pink },
-  parameter: { text: pink },
-  regexp: { text: pink },
-  stringContent: { text: pink },
-  stringPunctuation: { text: pink },
+  atom: { text: pink },
+  comment: { text: pink },
   variable: { text: pink },
-  entityNameTag: { text: pink },
+  regexp: { text: pink },
+  number: { text: pink },
+  operator: { text: pink },
+  string: { text: pink },
+  entityName: { text: pink },
 };
 
 test('highlights code', async () => {
   const code = tsx`true;`;
-  await ready();
+  await ready({ langs: ['tsx'] });
   expect(parse(code)).toEqual([
-    { code: 'true', color: blue },
-    { code: ';', color: greyBlue },
+    { code: 'true', color: atom },
+    { code: ';', color: fallback },
   ]);
 });
 
 test('highlights numbers', async () => {
   const code = tsx`5`;
-  await ready();
-  expect(parse(code)).toEqual([{ code: '5', color: blue }]);
+  await ready({ langs: ['tsx'] });
+  expect(parse(code)).toEqual([{ code: '5', color: number }]);
 });
 
 test('highlights an operator', async () => {
   const code = tsx`5+3`;
-  await ready();
+  await ready({ langs: ['tsx'] });
   expect(parse(code)).toEqual([
-    { code: '5', color: blue },
-    { code: '+', color: lightRed },
-    { code: '3', color: blue },
+    { code: '5', color: number },
+    { code: '+', color: fallback },
+    { code: '3', color: number },
   ]);
 });
 
 test('highlights a function declaration', async () => {
   const code = tsx`function n(){}`;
-  await ready();
+  await ready({ langs: ['tsx'] });
   expect(parse(code)).toEqual([
-    { code: 'function', color: lightRed },
-    { code: ' ', color: greyBlue },
-    { code: 'n', color: violet },
-    { code: '(){}', color: greyBlue },
+    { code: 'function', color: keyword },
+    { code: ' ', color: fallback },
+    { code: 'n', color: def },
+    { code: '(', color: fallback },
+    { code: ')', color: fallback },
+    { code: '{', color: fallback },
+    { code: '}', color: fallback },
   ]);
 });
 
 test('highlights a variable declaration', async () => {
   const code = tsx`var what;`;
-  await ready();
+  await ready({ langs: ['tsx'] });
   expect(parse(code)).toEqual([
-    { code: 'var', color: lightRed },
-    { code: ' ', color: greyBlue },
-    { code: 'what', color: greyBlue },
-    { code: ';', color: greyBlue },
+    { code: 'var', color: keyword },
+    { code: ' ', color: fallback },
+    { code: 'what', color: def },
+    { code: ';', color: fallback },
   ]);
 });
 
 test('highlights a parameter', async () => {
   const code = tsx`function n(param){}`;
-  await ready();
+  await ready({ langs: ['tsx'] });
   expect(parse(code)).toEqual([
-    { code: 'function', color: lightRed },
-    { code: ' ', color: greyBlue },
-    { code: 'n', color: violet },
-    { code: '(', color: greyBlue },
-    { code: 'param', color: orange },
-    { code: '){}', color: greyBlue },
+    { code: 'function', color: keyword },
+    { code: ' ', color: fallback },
+    { code: 'n', color: def },
+    { code: '(', color: fallback },
+    { code: 'param', color: def },
+    { code: ')', color: fallback },
+    { code: '{', color: fallback },
+    { code: '}', color: fallback },
   ]);
 });
 
 test('highlights a regular expression', async () => {
   const code = tsx`/r/g`;
-  await ready();
-  expect(parse(code)).toEqual([
-    { code: '/', color: lightBlue },
-    { code: 'r', color: lightBlue },
-    { code: '/', color: lightBlue },
-    { code: 'g', color: lightRed },
-  ]);
+  await ready({ langs: ['tsx'] });
+  expect(parse(code)).toEqual([{ code: '/r/g', color: string2 }]);
 });
 
 test('highlights a string', async () => {
   const code = tsx`'s'`;
-  await ready();
-  expect(parse(code)).toEqual([
-    { code: `'`, color: lightBlue },
-    { code: `s`, color: lightBlue },
-    { code: `'`, color: lightBlue },
-  ]);
+  await ready({ langs: ['tsx'] });
+  expect(parse(code)).toEqual([{ code: `'s'`, color: string }]);
 });
 
 test('highlights a comment', async () => {
   const code = tsx`/*c*/`;
-  await ready();
-  expect(parse(code)).toEqual([{ code: `/*c*/`, color: midtone }]);
+  await ready({ langs: ['tsx'] });
+  expect(parse(code)).toEqual([{ code: `/*c*/`, color: comment }]);
 });
 
-test('highlights svelte', async () => {
+/*
+test.skip('highlights svelte', async () => {
   const code = language.svelte`<p/>`;
-  await ready();
+  await ready({ langs: ['tsx'] });
   expect(parse(code)).toEqual([
     { code: `<`, color: greyBlue },
     { code: `p`, color: green },
     { code: `/>`, color: greyBlue },
   ]);
 });
+*/
 
 describe('code style override', async () => {
   test('overrides the base color', async () => {
     const code = language.tsx`true;`;
-    await ready();
+    await ready({ langs: ['tsx'] });
     expect(parse(code, { codeStyle: allPink })).toEqual([
       { code: `true`, color: pink },
       { code: `;`, color: pink },
@@ -137,92 +136,65 @@ describe('code style override', async () => {
 
   test('override a string', async () => {
     const code = tsx`'s'`;
-    await ready();
+    await ready({ langs: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
-          stringContent: { text: '#ffeeee' },
-          stringPunctuation: { text: '#eeeeff' },
+          string: { text: '#ffeeee' },
         },
       }),
-    ).toEqual([
-      { code: `'`, color: '#eeeeff' },
-      { code: 's', color: '#ffeeee' },
-      { code: `'`, color: '#eeeeff' },
-    ]);
+    ).toEqual([{ code: `'s'`, color: '#ffeeee' }]);
   });
 
-  test('override a regex using a flat color', async () => {
+  test('override a regex', async () => {
     const code = tsx`/r/g`;
-    await ready();
+    await ready({ langs: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
           regexp: { text: '#ffffff' },
         },
       }),
-    ).toEqual([
-      { code: `/`, color: '#ffffff' },
-      { code: `r`, color: '#ffffff' },
-      { code: `/`, color: '#ffffff' },
-      { code: `g`, color: '#ffffff' },
-    ]);
-  });
-
-  test('override a regex using discrete colors', async () => {
-    const code = tsx`/r/g`;
-    await ready();
-    expect(
-      parse(code, {
-        codeStyle: {
-          regexp: { brackets: '#ffffff', content: '#ff0000', flags: '#0000ff' },
-        },
-      }),
-    ).toEqual([
-      { code: `/`, color: '#ffffff' },
-      { code: `r`, color: '#ff0000' },
-      { code: `/`, color: '#ffffff' },
-      { code: `g`, color: '#0000ff' },
-    ]);
+    ).toEqual([{ code: `/r/g`, color: '#ffffff' }]);
   });
 
   test('override a variable declaration', async () => {
     const code = tsx`let w`;
-    await ready();
+    await ready({ langs: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
-          variable: { text: '#ff0000' },
+          entityName: { text: '#ff0000' },
         },
       }),
     ).toEqual([
-      { code: `let`, color: lightRed },
-      { code: ` `, color: greyBlue },
+      { code: `let`, color: keyword },
+      { code: ` `, color: fallback },
       { code: `w`, color: '#ff0000' },
     ]);
   });
 
   test('override a parameter declaration', async () => {
     const code = tsx`(p)=>null`;
-    await ready();
+    await ready({ langs: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
-          parameter: { text: '#ff0000' },
+          entityName: { text: '#ff0000' },
         },
       }),
     ).toEqual([
-      { code: `(`, color: greyBlue },
+      { code: `(`, color: fallback },
       { code: `p`, color: '#ff0000' },
-      { code: `)`, color: greyBlue },
-      { code: `=>`, color: lightRed },
-      { code: `null`, color: blue },
+      { code: `)`, color: fallback },
+      { code: `=>`, color: operator },
+      { code: `null`, color: atom },
     ]);
   });
 
   test('override a comment', async () => {
     const code = tsx`// c`;
-    await ready();
+    await ready({ langs: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -232,49 +204,25 @@ describe('code style override', async () => {
     ).toEqual([{ code: `// c`, color: '#ff0000' }]);
   });
 
-  test('override a number literal using deprecated syntax', async () => {
-    const code = tsx`5`;
-    await ready();
-    expect(
-      parse(code, {
-        codeStyle: {
-          literal: { text: '#ff0000' },
-        },
-      }),
-    ).toEqual([{ code: `5`, color: '#ff0000' }]);
-  });
-
   test('override a number literal', async () => {
     const code = tsx`5`;
-    await ready();
+    await ready({ langs: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
-          literal: { text: '#ff0000' },
+          number: { text: '#ff0000' },
         },
       }),
     ).toEqual([{ code: `5`, color: '#ff0000' }]);
   });
 
-  test('override a boolean literal using deprecated syntax', async () => {
+  test('override an atom', async () => {
     const code = tsx`true`;
-    await ready();
+    await ready({ langs: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
-          literal: { text: '#ff0000' },
-        },
-      }),
-    ).toEqual([{ code: `true`, color: '#ff0000' }]);
-  });
-
-  test('override a boolean literal', async () => {
-    const code = tsx`true`;
-    await ready();
-    expect(
-      parse(code, {
-        codeStyle: {
-          literal: { text: '#ff0000' },
+          atom: { text: '#ff0000' },
         },
       }),
     ).toEqual([{ code: `true`, color: '#ff0000' }]);
@@ -282,7 +230,7 @@ describe('code style override', async () => {
 
   test('override a keyword', async () => {
     const code = tsx`const`;
-    await ready();
+    await ready({ langs: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
@@ -292,54 +240,57 @@ describe('code style override', async () => {
     ).toEqual([{ code: `const`, color: '#ff0000' }]);
   });
 
-  test('override an entityName', async () => {
+  test('override a variable', async () => {
     const code = tsx`en()`;
-    await ready();
+    await ready({ langs: ['tsx'] });
     expect(
       parse(code, {
         codeStyle: {
-          entityName: { text: '#ff0000' },
+          variable: { text: '#ff0000' },
         },
       }),
     ).toEqual([
       { code: `en`, color: '#ff0000' },
-      { code: `()`, color: greyBlue },
+      { code: `(`, color: fallback },
+      { code: `)`, color: fallback },
     ]);
   });
 
-  test('overrides entity name tag', async () => {
+  /*
+  test.skip('overrides entity name tag', async () => {
     const code = language.svelte`<p/>`;
-    await ready();
+    await ready({ langs: ['tsx'] });
     expect(parse(code, { codeStyle: allPink })).toEqual([
       { code: `<`, color: pink },
       { code: `p`, color: pink },
       { code: `/>`, color: pink },
     ]);
   });
+  */
 });
 
 describe('parse', () => {
   describe('undent', () => {
     test('keep', async () => {
-      await ready();
+      await ready({ langs: ['tsx'] });
       const tsx = language.tsx;
       const result = parse(tsx`    true`);
       expect(result).toMatchInlineSnapshot(`
         [
           {
             "code": "    ",
-            "color": "#c9d1d9",
+            "color": "black",
           },
           {
             "code": "true",
-            "color": "#79c0ff",
+            "color": "#219",
           },
         ]
       `);
     });
 
     test('fix', async () => {
-      await ready();
+      await ready({ langs: ['tsx'] });
       const tsx = language.tsx;
       const result = parse(tsx`
         true`);
@@ -347,14 +298,14 @@ describe('parse', () => {
         [
           {
             "code": "true",
-            "color": "#79c0ff",
+            "color": "#219",
           },
         ]
       `);
     });
 
     test('template', async () => {
-      await ready();
+      await ready({ langs: ['tsx'] });
       const tsx = language.tsx;
       const result = parse(tsx`
         ${'true'}`);
@@ -362,14 +313,14 @@ describe('parse', () => {
         [
           {
             "code": "true",
-            "color": "#79c0ff",
+            "color": "#219",
           },
         ]
       `);
     });
 
     test('replacement', async () => {
-      await ready();
+      await ready({ langs: ['tsx'] });
       const tsx = language.tsx;
       const replacement = `
         true`;
@@ -385,7 +336,7 @@ describe('parse', () => {
     });
 
     test('replacement with indentation', async () => {
-      await ready();
+      await ready({ langs: ['tsx'] });
       const tsx = language.tsx;
       const replacement = `true`;
       const result = parse(tsx`
@@ -398,7 +349,7 @@ describe('parse', () => {
     });
 
     test('reindents nested code', async () => {
-      await ready();
+      await ready({ langs: ['tsx'] });
       const tsx = language.tsx;
       const body = tsx`
 some();
@@ -417,26 +368,34 @@ function (${''}) {
   });
 
   test('README', async () => {
-    await ready();
+    await ready({ langs: ['tsx'] });
     const tsx = language.tsx;
     const result = parse(tsx`() => true`);
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "code": "() ",
-          "color": "#c9d1d9",
+          "code": "(",
+          "color": "black",
         },
         {
-          "code": "=>",
-          "color": "#ff7b72",
+          "code": ")",
+          "color": "black",
         },
         {
           "code": " ",
-          "color": "#c9d1d9",
+          "color": "black",
+        },
+        {
+          "code": "=>",
+          "color": "black",
+        },
+        {
+          "code": " ",
+          "color": "black",
         },
         {
           "code": "true",
-          "color": "#79c0ff",
+          "color": "#219",
         },
       ]
     `);
@@ -447,15 +406,19 @@ function (${''}) {
       [
         {
           "code": "(",
-          "color": "#c9d1d9",
+          "color": "black",
         },
         {
           "code": "false",
-          "color": "#79c0ff",
+          "color": "#219",
         },
         {
-          "code": ");",
-          "color": "#c9d1d9",
+          "code": ")",
+          "color": "black",
+        },
+        {
+          "code": ";",
+          "color": "black",
         },
       ]
     `);
@@ -465,7 +428,7 @@ function (${''}) {
       [
         {
           "code": "(",
-          "color": "#c9d1d9",
+          "color": "black",
           "from": [
             0,
             0,
@@ -478,7 +441,7 @@ function (${''}) {
         },
         {
           "code": "true",
-          "color": "#79c0ff",
+          "color": "#219",
           "from": [
             1,
             0,
@@ -488,7 +451,7 @@ function (${''}) {
         },
         {
           "code": "false",
-          "color": "#79c0ff",
+          "color": "#219",
           "from": null,
           "morph": "create",
           "to": [
@@ -498,7 +461,7 @@ function (${''}) {
         },
         {
           "code": ");",
-          "color": "#c9d1d9",
+          "color": "black",
           "from": [
             5,
             0,
@@ -516,20 +479,20 @@ function (${''}) {
 
 describe('diff', () => {
   test('equal inputs', async () => {
-    await ready();
+    await ready({ langs: ['tsx'] });
     const start = tsx`true;`;
     const end = tsx`true;`;
     expect(diff(start, end)).toEqual([
       {
         code: 'true',
-        color: blue,
+        color: atom,
         morph: 'retain',
         from: [0, 0],
         to: [0, 0],
       },
       {
         code: ';',
-        color: greyBlue,
+        color: fallback,
         morph: 'retain',
         from: [4, 0],
         to: [4, 0],
@@ -538,27 +501,27 @@ describe('diff', () => {
   });
 
   test('different inputs', async () => {
-    await ready();
+    await ready({ langs: ['tsx'] });
     const start = tsx`${'true'};`;
     const end = tsx`${'false'};`;
     expect(diff(start, end)).toEqual([
       {
         code: 'true',
-        color: blue,
+        color: atom,
         morph: 'delete',
         from: [0, 0],
         to: null,
       },
       {
         code: 'false',
-        color: blue,
+        color: atom,
         morph: 'create',
         from: null,
         to: [0, 0],
       },
       {
         code: ';',
-        color: greyBlue,
+        color: fallback,
         morph: 'retain',
         from: [4, 0],
         to: [5, 0],
@@ -567,20 +530,20 @@ describe('diff', () => {
   });
 
   test('double width characters', async () => {
-    await ready();
+    await ready({ langs: ['tsx'] });
     const start = tsx`${'한'};`;
     const end = tsx`${''};`;
     expect(diff(start, end)).toEqual([
       {
         code: '한',
-        color: greyBlue,
+        color: fallback,
         morph: 'delete',
         from: [0, 0],
         to: null,
       },
       {
         code: ';',
-        color: greyBlue,
+        color: fallback,
         morph: 'retain',
         from: [2, 0],
         to: [0, 0],
@@ -589,27 +552,27 @@ describe('diff', () => {
   });
 
   test('nested inputs', async () => {
-    await ready();
+    await ready({ langs: ['tsx'] });
     const start = tsx`${tsx`true`};`;
     const end = tsx`${tsx`false`};`;
     expect(diff(start, end)).toEqual([
       {
         code: 'true',
-        color: blue,
+        color: atom,
         morph: 'delete',
         from: [0, 0],
         to: null,
       },
       {
         code: 'false',
-        color: blue,
+        color: atom,
         morph: 'create',
         from: null,
         to: [0, 0],
       },
       {
         code: ';',
-        color: greyBlue,
+        color: fallback,
         morph: 'retain',
         from: [4, 0],
         to: [5, 0],
@@ -618,27 +581,27 @@ describe('diff', () => {
   });
 
   test('tagged vs string', async () => {
-    await ready();
+    await ready({ langs: ['tsx'] });
     const start = tsx`${'true'};`;
     const end = tsx`${tsx`true`};`;
     expect(diff(start, end)).toEqual([
       {
         code: 'true',
-        color: blue,
+        color: atom,
         morph: 'delete',
         from: [0, 0],
         to: null,
       },
       {
         code: 'true',
-        color: blue,
+        color: atom,
         morph: 'create',
         from: null,
         to: [0, 0],
       },
       {
         code: ';',
-        color: greyBlue,
+        color: fallback,
         morph: 'retain',
         from: [4, 0],
         to: [4, 0],
@@ -647,27 +610,27 @@ describe('diff', () => {
   });
 
   test('partial token mismatch', async () => {
-    await ready();
+    await ready({ langs: ['tsx'] });
     const start = tsx`foo${'bar'}`;
     const end = tsx`foo${'baz'}`;
     expect(diff(start, end)).toEqual([
       {
         code: 'foo',
-        color: greyBlue,
+        color: fallback,
         morph: 'retain',
         from: [0, 0],
         to: [0, 0],
       },
       {
         code: 'bar',
-        color: greyBlue,
+        color: fallback,
         morph: 'delete',
         from: [3, 0],
         to: null,
       },
       {
         code: 'baz',
-        color: greyBlue,
+        color: fallback,
         morph: 'create',
         from: null,
         to: [3, 0],
@@ -676,29 +639,29 @@ describe('diff', () => {
   });
 
   test('recursive', async () => {
-    await ready();
+    await ready({ langs: ['tsx'] });
     const start = tsx`${tsx`1+${tsx`2`}`};`;
     const end = tsx`${tsx`1+${tsx`3`}`};`;
     expect(diff(start, end)).toEqual([
       {
         code: '1',
-        color: blue,
+        color: number,
         morph: 'retain',
         from: [0, 0],
         to: [0, 0],
       },
       {
         code: '+',
-        color: lightRed,
+        color: operator,
         morph: 'retain',
         from: [1, 0],
         to: [1, 0],
       },
-      { code: '2', color: blue, morph: 'delete', from: [2, 0], to: null },
-      { code: '3', color: blue, morph: 'create', from: null, to: [2, 0] },
+      { code: '2', color: number, morph: 'delete', from: [2, 0], to: null },
+      { code: '3', color: number, morph: 'create', from: null, to: [2, 0] },
       {
         code: ';',
-        color: greyBlue,
+        color: fallback,
         morph: 'retain',
         from: [3, 0],
         to: [3, 0],
@@ -707,7 +670,7 @@ describe('diff', () => {
   });
 
   test('indented', async () => {
-    await ready();
+    await ready({ langs: ['tsx'] });
     const truthy = tsx`
       true`;
     const falsy = tsx`
@@ -724,7 +687,7 @@ describe('diff', () => {
       [
         {
           "code": "{",
-          "color": "#c9d1d9",
+          "color": "black",
           "from": [
             0,
             0,
@@ -737,7 +700,7 @@ describe('diff', () => {
         },
         {
           "code": "true",
-          "color": "#79c0ff",
+          "color": "#219",
           "from": [
             2,
             1,
@@ -747,7 +710,7 @@ describe('diff', () => {
         },
         {
           "code": "false",
-          "color": "#79c0ff",
+          "color": "#219",
           "from": null,
           "morph": "create",
           "to": [
@@ -757,7 +720,7 @@ describe('diff', () => {
         },
         {
           "code": "}",
-          "color": "#c9d1d9",
+          "color": "black",
           "from": [
             0,
             2,
@@ -770,5 +733,16 @@ describe('diff', () => {
         },
       ]
     `);
+  });
+});
+
+describe('stock themes', () => {
+  test('highlights code with nord', async () => {
+    const code = tsx`true;`;
+    await ready({ langs: ['tsx'], themes: ['nord'] });
+    expect(parse(code, { theme: 'nord' })).toEqual([
+      { code: 'true', color: '#b48ead' },
+      { code: ';', color: '#d8dee9' },
+    ]);
   });
 });

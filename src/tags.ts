@@ -1,18 +1,60 @@
-import { createStarryNight, all } from '@wooorm/starry-night';
-import style from './dark-style';
-import type { Root, RootContent } from 'hast';
-import type { CodeStyle } from './style';
+import { CodeStyle, getFromCodeStyle, StyleOption } from './style';
 import wcwidth from 'wcwidth';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import CodeMirror from 'codemirror/addon/runmode/runmode.node';
+import 'codemirror/mode/meta';
+import { Declaration, parse as parseCSS, Rule } from 'css';
 
-export interface StarryNight {
-  flagToScope: (flag: string) => string | undefined;
-  highlight: (value: string, scope: string) => Root;
+const modeMap = new Map<string, Mode>();
+const collisions = new Set<string>();
+interface Mode {
+  name: string;
+  mime: string;
+  mode: string;
+  mimes?: string[];
+  alias?: string[];
+  ext?: string[];
+}
+for (const mode of CodeMirror.modeInfo as Mode[]) {
+  const keys = new Set<string>();
+  for (const key of mode.alias ?? []) {
+    keys.add(key);
+  }
+  if (keys.size === 0) {
+    for (const key of mode.ext ?? []) {
+      keys.add(key);
+    }
+  }
+  for (const key of keys) {
+    if (modeMap.has(key)) {
+      collisions.add(key);
+      modeMap.delete(key);
+    } else if (!collisions.has(key)) {
+      modeMap.set(key, mode);
+    }
+  }
 }
 
-const starryNight = createStarryNight(all);
-let starryNightCache: StarryNight | null = null;
-export async function ready() {
-  starryNightCache = await starryNight;
+const themes: Map<string, Map<string, string>> = new Map();
+
+interface ReadyOptions {
+  langs?: string[];
+  themes?: string[];
+}
+
+export async function ready(options?: ReadyOptions) {
+  for (const lang of options?.langs ?? []) {
+    const mode = modeMap.get(lang);
+    if (mode == null) {
+      throw new Error(`language ${mode} not found`);
+    }
+    await import(`codemirror/mode/${mode.mode}/${mode.mode}`);
+  }
+  themes.set('default', await getColorMap());
+  for (const theme of options?.themes ?? []) {
+    themes.set(theme, await getColorMap(theme));
+  }
 }
 
 export interface CodeTree {
@@ -57,150 +99,117 @@ export interface MorphToken extends Token {
 
 export interface ParseOptions {
   codeStyle?: CodeStyle;
+  theme?: string;
 }
 
-export function parse(
-  code: CodeTree,
-  options?: { codeStyle?: CodeStyle },
-): Token[] {
-  const raw = integrate(reindent(code));
-  if (starryNightCache == null) throw new Error(`you must await ready()`);
-  const sn = starryNightCache;
-  const scope = sn.flagToScope(code.language);
-  if (typeof scope !== 'string') {
-    throw new Error(`language ${code.language} not found`);
-  }
-  const parsed = sn.highlight(raw, scope);
-  return parsed.children
-    .map((child) => colorRecurse(child, options?.codeStyle ?? {}))
-    .flat()
-    .map(({ color, ...rest }) => ({
-      ...rest,
-      color: color === '' ? '#c9d1d9' : color,
-    }));
-}
-
-const rules = new Map(
-  Object.entries(style).map(([k, v]) => [k, new Map(Object.entries(v))]),
-);
-
-const styleMap: Array<[string[], (s: CodeStyle) => string | undefined]> = [
-  [['pl-s'], (s: CodeStyle) => s.stringContent?.text],
-  [['pl-s', 'pl-pds'], (s: CodeStyle) => s.stringPunctuation?.text],
-  [['pl-c'], (s: CodeStyle) => s.comment?.text],
-  [['pl-smi'], (s: CodeStyle) => s.variable?.text],
-  [['pl-v'], (s: CodeStyle) => s.parameter?.text],
-  [['pl-s', 'pl-sr'], (s: CodeStyle) => s.regexp?.content ?? s.regexp?.text],
-  [
-    ['pl-s', 'pl-sr', 'pl-pds'],
-    (s: CodeStyle) => s.regexp?.brackets ?? s.regexp?.text,
-  ],
-  [
-    ['pl-s', 'pl-sr', 'pl-k'],
-    (s: CodeStyle) => s.regexp?.flags ?? s.regexp?.text,
-  ],
-  [['pl-c1'], (s: CodeStyle) => s.literal?.text],
-  [['pl-k'], (s: CodeStyle) => s.keyword?.text],
-  [['pl-en'], (s: CodeStyle) => s.entityName?.text],
-  [['pl-ent'], (s: CodeStyle) => s.entityNameTag?.text],
-];
-
-function findAssociated<V>(
-  styleMap: Array<[string[], V]>,
-  target: string[],
-  notFound: V,
-): V {
-  let best = notFound;
-  let specificity = 0;
-  for (const [keys, value] of styleMap) {
-    if (keys.length <= specificity) {
-      continue;
-    }
-    let keyIndex = 0;
-    let targetIndex = 0;
-    while (targetIndex < target.length && keyIndex < keys.length) {
-      const key = keys[keyIndex];
-      const targetKey = target[targetIndex];
-      if (targetKey === key) {
-        keyIndex++;
+function colorOfRule(rule: Rule): string | undefined {
+  for (const item2 of rule.declarations ?? []) {
+    if (item2.type === 'declaration') {
+      const declaration = item2 as Declaration;
+      if (declaration.property === 'color') {
+        return declaration.value;
       }
-      targetIndex++;
-    }
-    if (keyIndex === keys.length) {
-      // all keys found
-      best = value;
-      specificity = keys.length;
     }
   }
-  return best;
+  return undefined;
 }
 
-export function getColor(
-  classList: string[],
-  codeStyle: CodeStyle,
-): string | undefined {
-  const fn = findAssociated(styleMap, classList, () => undefined);
-  const result = fn(codeStyle);
-  if (result != null) {
-    return result;
-  }
-  const styles = rules.get(`.${classList.at(-1)}`);
-  console.assert((styles?.size ?? 0) <= 1, `more styles than just color`);
-  return styles?.get('color');
-}
-
-function colorRecurse(
-  parsed: RootContent,
-  codeStyle: CodeStyle,
-  classList: string[] = [],
-): Token[] {
-  if (parsed.type === 'text') {
-    return [
-      {
-        code: parsed.value,
-        color: codeStyle.base?.text ?? '',
-      },
-    ];
-  } else if (parsed.type === 'element') {
-    const className = (parsed.properties?.className ?? []) as string[];
-    const color = getColor(classList.concat(className), codeStyle);
-    const children = parsed.children.map((child) =>
-      colorRecurse(child, codeStyle, classList.concat(className)),
-    );
-    const result = [];
-    const emit = () => {
-      if (temp !== '') {
-        if (color != '') {
-          result.push({
-            code: temp,
-            color,
-          });
-        } else {
-          result.push({
-            code: temp,
-            color: '',
-          });
-        }
-        temp = '';
+function* getTargetsOfRule(rule: Rule, theme = 'default') {
+  for (const selector of rule.selectors ?? []) {
+    const parts = selector.split(' ');
+    if (parts.length === 1) {
+      const [part] = parts;
+      const classes: string[] = [];
+      for (const match of part.matchAll(/\.([\w-]+)/g)) {
+        const [, target] = match;
+        classes.push(target);
       }
-    };
-    let temp = '';
-    for (const child of children) {
-      for (const item of child) {
-        if (item.color === '') {
-          temp += item.code;
-        } else {
-          emit();
-          result.push(item);
+      if (classes.includes('CodeMirror')) {
+        const classTheme =
+          classes.find((c) => /cm-s-[\w-]+/.test(c)) ?? 'default';
+        if (classTheme === 'default' || classTheme === `cm-s-${theme}`) {
+          yield 'fallback';
         }
       }
-      emit();
     }
-    emit();
-    return result;
+    if (parts.length > 0 && parts[0] === `.cm-s-${theme}`) {
+      if (parts.length !== 2) {
+        throw new Error(`found css rule with more than two parts`);
+      }
+      const matched = parts[1].match(/\.cm-([\w-]+)\b/);
+      if (matched == null) {
+        continue;
+      }
+      const [, target] = matched;
+      yield target;
+    }
+  }
+}
+
+async function getTheme(theme?: string) {
+  if (theme == null) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    return (await import(`codemirror/lib/codemirror.css?raw`)).default;
   } else {
-    throw new Error();
+    return (await import(`codemirror/theme/${theme}.css?raw`)).default;
   }
+}
+
+async function getColorMap(theme?: string) {
+  const css = parseCSS(await getTheme(theme));
+  const map = new Map<string, string>();
+  for (const item of css?.stylesheet?.rules ?? []) {
+    if (item.type === 'rule') {
+      const rule = item as Rule;
+      const color = colorOfRule(rule);
+      if (color != null) {
+        for (const target of getTargetsOfRule(rule, theme)) {
+          map.set(target, color);
+        }
+      }
+    }
+  }
+  return map;
+}
+
+function getColor(style: StyleOption | undefined, options?: ParseOptions) {
+  if (style == null) {
+    style = 'fallback';
+  }
+  const override = getFromCodeStyle(options?.codeStyle, style);
+  if (override != null) {
+    return override.text;
+  }
+  const theme = options?.theme ?? 'default';
+  const themeRules = themes.get(theme);
+  if (themeRules == null) {
+    throw new Error(
+      `you must first call \`await ready({ themes: [${theme}] })\``,
+    );
+  }
+  const fallbackOverride = options?.codeStyle?.['fallback']?.text;
+  return (
+    themeRules.get(style) ??
+    fallbackOverride ??
+    themeRules.get('fallback') ??
+    ''
+  );
+}
+
+export function parse(code: CodeTree, options?: ParseOptions): Token[] {
+  const raw = integrate(reindent(code));
+  const parsed: Token[] = [];
+  const mode = modeMap.get(code.language);
+  if (mode == null) {
+    throw new Error(
+      `you must call \`await ready({ langs: ['${code.language}'] })\``,
+    );
+  }
+  CodeMirror.runMode(raw, mode.mime, (text: string, style?: StyleOption) => {
+    parsed.push({ code: text, color: getColor(style, options) });
+  });
+  return parsed;
 }
 
 export function toString(tokens: Token[]): string {

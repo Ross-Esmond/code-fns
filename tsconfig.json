@@ -6,6 +6,7 @@
     "declarationMap": true,
     "target": "esnext",
     "moduleResolution": "Node",
+    "module": "esnext",
     "resolveJsonModule": true,
     "useDefineForClassFields": true,
     "strict": true,
